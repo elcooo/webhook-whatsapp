@@ -21,6 +21,20 @@ const PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
 
+const required = [
+  ["WA_VERIFY_TOKEN", VERIFY_TOKEN],
+  ["WA_ACCESS_TOKEN", ACCESS_TOKEN],
+  ["WA_PHONE_NUMBER_ID", PHONE_NUMBER_ID],
+  ["OPENAI_API_KEY", OPENAI_API_KEY],
+  ["MINIMAX_API_KEY", MINIMAX_API_KEY],
+];
+const missing = required.filter(([, v]) => !v).map(([k]) => k);
+if (missing.length) {
+  console.error("Missing required environment variables:", missing.join(", "));
+  console.error("Set them in Railway: Variables tab, or in a local .env file.");
+  process.exit(1);
+}
+
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 // Storage
