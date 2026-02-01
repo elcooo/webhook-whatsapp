@@ -33,8 +33,8 @@ const required = [
 ];
 const missing = required.filter(([, v]) => !v).map(([k]) => k);
 if (missing.length) {
-  console.error("Missing required environment variables:", missing.join(", "));
-  console.error("Set them in Railway: Variables tab, or in a local .env file.");
+  console.error("Fehlende Umgebungsvariablen:", missing.join(", "));
+  console.error("Setze sie in Railway unter Variables oder in einer lokalen .env-Datei.");
   process.exit(1);
 }
 
@@ -42,8 +42,8 @@ const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
 const DONATION_LINK = process.env.DONATION_LINK || "";
 const DONATION_TEXT = DONATION_LINK
-  ? `💛 If this song made you smile, you can support the project here:\n${DONATION_LINK}\n\nAs a thank-you, supporters can request extra versions (HQ / instrumental).`
-  : `💛 If this song made you smile, you can support the project (donation link not set).`;
+  ? `💛 Wenn dir der Song gefallen hat, kannst du das Projekt hier unterstützen:\n${DONATION_LINK}\n\nAls Dank können Unterstützer Extra-Versionen (HQ / Instrumental) anfragen.`
+  : `💛 Wenn dir der Song gefallen hat, kannst du das Projekt unterstützen (Spendenlink nicht gesetzt).`;
 
 function getConv(phone) {
   if (!conversations[phone]) conversations[phone] = { name: phone, messages: [] };
@@ -163,51 +163,51 @@ async function generateMusicWithMiniMax(style, lyrics) {
     return { buffer: Buffer.from(buffer) };
   }
 
-  return { error: data.base_resp?.status_msg || "Failed to generate music" };
+  return { error: data.base_resp?.status_msg || "Musik konnte nicht erzeugt werden" };
 }
 
 // === ONE AI FUNCTION TO RULE THEM ALL ===
-const SYSTEM_PROMPT = `You are a friendly WhatsApp AI music assistant that creates custom songs.
+const SYSTEM_PROMPT = `Du bist ein freundlicher WhatsApp-KI-Musik-Assistent, der persönliche Songs erstellt.
 
-IMPORTANT RULES:
-1. Keep responses SHORT (2-3 sentences max)
-2. Only call generate_song ONCE per song request - never call it multiple times
-3. When user confirms they want to generate, call generate_song immediately - don't ask again
+WICHTIGE REGELN:
+1. Halte Antworten KURZ (max. 2–3 Sätze)
+2. Rufe generate_song nur EINMAL pro Song-Anfrage auf – nie mehrfach
+3. Wenn der Nutzer bestätigt, dass er generieren will, rufe generate_song sofort auf – frage nicht nochmal
 
-CONVERSATION FLOW:
-1. Greet user, ask what they want their song to be about
-2. Once you have a topic, write SHORT lyrics (1 verse + 1 chorus only, use [verse] and [chorus] tags)
-3. Show lyrics and ask if they like it
-4. If yes, ask for music style (pop, rock, rap, etc)
-5. Once you have style confirmation, call generate_song ONCE
-6. After delivering the song, ask for a donation link support (short).
+GESPRÄCHSABLAUF:
+1. Begrüße den Nutzer, frage worum es in dem Song gehen soll
+2. Sobald du ein Thema hast, schreibe KURZE Lyrics (nur 1 Vers + 1 Refrain, nutze [verse] und [chorus] Tags)
+3. Zeige die Lyrics und frage ob sie gefallen
+4. Wenn ja, frage nach dem Musikstil (Pop, Rock, Rap, etc.)
+5. Sobald der Stil bestätigt ist, rufe generate_song EINMAL auf
+6. Nach dem Song: kurz um Spendenlink-Unterstützung bitten.
 
-NEVER:
-- Generate multiple songs
-- Ask too many questions
-- Write long responses
-- Call generate_song more than once per request
+NIEMALS:
+- Mehrere Songs generieren
+- Zu viele Fragen stellen
+- Lange Antworten schreiben
+- generate_song mehr als einmal pro Anfrage aufrufen
 
-When generating lyrics, keep them SHORT - just 1 verse and 1 chorus.
+Lyrics immer KURZ halten – nur 1 Vers und 1 Refrain.
 
-After delivering the song, ask the user to support with a donation (do not pressure).`;
+Nach dem Song den Nutzer freundlich um eine Spende bitten (nicht drängen).`;
 
 const tools = [
   {
     type: "function",
     function: {
       name: "generate_song",
-      description: "Generate an actual song/music audio file and send it to the user. Use this when user has confirmed they want to create a song and you have both lyrics and style.",
+      description: "Erzeuge eine echte Song-/Musik-Audiodatei und sende sie an den Nutzer. Nutze das, wenn der Nutzer bestätigt hat, dass er einen Song erstellen will und du sowohl Lyrics als auch Stil hast.",
       parameters: {
         type: "object",
         properties: {
           lyrics: {
             type: "string",
-            description: "The song lyrics with [verse] and [chorus] tags",
+            description: "Die Song-Lyrics mit [verse] und [chorus] Tags",
           },
           style: {
             type: "string",
-            description: "Music style description like 'upbeat pop, catchy melody' or 'emotional ballad, piano'",
+            description: "Musikstil-Beschreibung z.B. 'beschwingter Pop, eingängige Melodie' oder 'emotionaler Ballad, Klavier'",
           },
         },
         required: ["lyrics", "style"],
@@ -243,7 +243,7 @@ async function chat(phone) {
         if (conv.state.songGenerated) {
           await sendMessage(
             phone,
-            `✅ I already generated your free song.\n\n${DONATION_TEXT}\n\nIf you want another song, reply: "new song" (you can decide later if you want to allow it).`
+            `✅ Deinen kostenlosen Song habe ich schon erstellt.\n\n${DONATION_TEXT}\n\nWenn du einen weiteren Song möchtest, antworte: „neuer Song“.`
           );
           return;
         }
@@ -257,7 +257,7 @@ async function chat(phone) {
         generatingFor.add(phone);
         const args = JSON.parse(toolCall.function.arguments);
 
-        await sendMessage(phone, "🎵 Generating your song now...");
+        await sendMessage(phone, "🎵 Dein Song wird jetzt erstellt...");
 
         // Generate the music
         const result = await generateMusicWithMiniMax(args.style, args.lyrics);
@@ -267,8 +267,8 @@ async function chat(phone) {
           const errorResponse = await openai.chat.completions.create({
             model: "gpt-5.2",
             messages: [
-              { role: "developer", content: "Song generation failed. Apologize briefly." },
-              { role: "user", content: `Error: ${result.error}` },
+              { role: "developer", content: "Die Song-Erstellung ist fehlgeschlagen. Entschuldige dich kurz." },
+              { role: "user", content: `Fehler: ${result.error}` },
             ],
           });
           const errorMsg = errorResponse.choices[0]?.message?.content;
@@ -279,7 +279,7 @@ async function chat(phone) {
           if (uploadResult.id) {
             await sendAudioMessage(phone, uploadResult.id);
             conv.state.songGenerated = true;
-            await sendMessage(phone, `🎉 Here's your song!\n\n${DONATION_TEXT}`);
+            await sendMessage(phone, `🎉 Hier ist dein Song!\n\n${DONATION_TEXT}`);
           }
         }
       }
@@ -328,14 +328,14 @@ app.post("/api/bot", (req, res) => {
 
 app.post("/api/send", async (req, res) => {
   const { to, text } = req.body;
-  if (!to || !text) return res.status(400).json({ error: "Missing 'to' or 'text'" });
+  if (!to || !text) return res.status(400).json({ error: "'to' oder 'text' fehlt" });
   res.json(await sendMessage(to, text));
 });
 
 app.post("/api/send-audio", upload.single("audio"), async (req, res) => {
   const { to } = req.body;
   const file = req.file;
-  if (!to || !file) return res.status(400).json({ error: "Missing 'to' or audio file" });
+  if (!to || !file) return res.status(400).json({ error: "'to' oder Audiodatei fehlt" });
 
   try {
     const uploadResult = await uploadMedia(file.buffer, file.mimetype);
@@ -348,14 +348,14 @@ app.post("/api/send-audio", upload.single("audio"), async (req, res) => {
 
 app.post("/api/generate-music", async (req, res) => {
   const { to } = req.body;
-  if (!to) return res.status(400).json({ error: "Missing 'to'" });
+  if (!to) return res.status(400).json({ error: "'to' fehlt" });
 
   // Let AI generate everything
   const response = await openai.chat.completions.create({
     model: "gpt-5.2",
     messages: [
-      { role: "developer", content: "Generate random song lyrics with [verse] and [chorus] tags, and a style description. Reply in JSON: {\"lyrics\": \"...\", \"style\": \"...\"}" },
-      { role: "user", content: "Create a random fun song" },
+      { role: "developer", content: "Erzeuge zufällige Song-Lyrics mit [verse]- und [chorus]-Tags sowie eine Stil-Beschreibung. Antworte in JSON: {\"lyrics\": \"...\", \"style\": \"...\"}" },
+      { role: "user", content: "Erstelle einen zufälligen lustigen Song" },
     ],
   });
 
