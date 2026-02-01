@@ -271,6 +271,48 @@
       color: #8696a0;
     }
 
+    /* Song credits panel */
+    .songs-panel {
+      background: #182229;
+      border-bottom: 1px solid #2a3942;
+      max-height: 280px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .songs-panel-header {
+      padding: 10px 16px;
+      font-size: 14px;
+      color: #8696a0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .songs-panel-header:hover { background: #2a3942; }
+    .songs-panel-content {
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .user-song-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #202c33;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .user-song-row .name { flex: 1; font-weight: 500; color: #e9edef; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-song-row .phone { color: #8696a0; font-size: 12px; }
+    .user-song-row .credits { background: #00a884; color: #111b21; padding: 2px 8px; border-radius: 10px; font-weight: 600; min-width: 24px; text-align: center; }
+    .user-song-row .add-row { display: flex; gap: 4px; align-items: center; }
+    .user-song-row input.add-input { width: 40px; padding: 4px 6px; border: none; border-radius: 4px; background: #2a3942; color: #e9edef; font-size: 13px; text-align: center; }
+    .user-song-row button.add-btn { background: #00a884; border: none; color: #111b21; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; }
+    .user-song-row button.add-btn:hover { background: #00c49a; }
+
     /* Welcome Screen */
     .welcome {
       flex: 1;
@@ -292,6 +334,15 @@
       <div class="toggle-switch">
         <input type="checkbox" id="bot-toggle" checked onchange="toggleBot(this.checked)">
         <span class="toggle-slider"></span>
+      </div>
+    </div>
+    <div class="songs-panel" id="songs-panel">
+      <div class="songs-panel-header" onclick="toggleSongsPanel()">
+        <span>🎵 Song-Guthaben</span>
+        <span id="songs-panel-arrow">▼</span>
+      </div>
+      <div class="songs-panel-content" id="songs-panel-content" style="display:none;">
+        <div id="users-list"></div>
       </div>
     </div>
     <div class="conversations" id="conversations">
@@ -601,6 +652,70 @@
       toggle.checked = enabled;
       status.textContent = enabled ? 'AN' : 'AUS';
       status.className = 'bot-status' + (enabled ? '' : ' off');
+    }
+
+    // Song credits: load users and add songs
+    let usersList = [];
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users');
+        usersList = await res.json();
+        renderUsers();
+      } catch (err) {
+        console.error('Failed to load users:', err);
+      }
+    }
+
+    function renderUsers() {
+      const container = document.getElementById('users-list');
+      if (!usersList.length) {
+        container.innerHTML = '<div style="padding:12px;color:#8696a0;font-size:13px;">Noch keine Nutzer.</div>';
+        return;
+      }
+      container.innerHTML = usersList.map(u => `
+        <div class="user-song-row">
+          <div style="flex:1;min-width:0;">
+            <div class="name">${escapeHtml(u.name)}</div>
+            <div class="phone">+${u.phone}</div>
+          </div>
+          <span class="credits">${u.songCredits}</span>
+          <div class="add-row">
+            <input type="number" class="add-input" id="add-${u.phone}" min="1" value="1" />
+            <button class="add-btn" onclick="addSongsForUser('${u.phone}')">Hinzufügen</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleSongsPanel() {
+      const content = document.getElementById('songs-panel-content');
+      const arrow = document.getElementById('songs-panel-arrow');
+      const isOpen = content.style.display !== 'none';
+      content.style.display = isOpen ? 'none' : 'block';
+      arrow.textContent = isOpen ? '▼' : '▲';
+      if (!isOpen) loadUsers();
+    }
+
+    async function addSongsForUser(phone) {
+      const input = document.getElementById('add-' + phone);
+      const add = Math.max(1, parseInt(input?.value || '1', 10));
+      try {
+        const res = await fetch('/api/users/' + encodeURIComponent(phone) + '/songs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ add })
+        });
+        const data = await res.json();
+        if (data.songCredits !== undefined) {
+          const u = usersList.find(x => x.phone === phone);
+          if (u) u.songCredits = data.songCredits;
+          renderUsers();
+        }
+      } catch (err) {
+        console.error('Failed to add songs:', err);
+        alert('Songs konnten nicht hinzugefügt werden');
+      }
     }
 
     // Initialize

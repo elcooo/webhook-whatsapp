@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import multer from "multer";
 import OpenAI from "openai";
+import Database from "better-sqlite3";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -45,21 +46,93 @@ const DONATION_TEXT = DONATION_LINK
   ? `💛 Wenn dir der Song gefallen hat, kannst du das Projekt hier unterstützen:\n${DONATION_LINK}\n\nAls Dank können Unterstützer Extra-Versionen (HQ / Instrumental) anfragen.`
   : `💛 Wenn dir der Song gefallen hat, kannst du das Projekt unterstützen (Spendenlink nicht gesetzt).`;
 
-function getConv(phone) {
-  if (!conversations[phone]) conversations[phone] = { name: phone, messages: [] };
-  if (!conversations[phone].state) {
-    conversations[phone].state = {
-      songGenerated: false,
-    };
-  }
-  return conversations[phone];
-}
-
 // Storage
 let botEnabled = true;
 const conversations = {};
 const sseClients = new Set();
-const generatingFor = new Set(); // Track users currently generating to prevent duplicates
+const generatingFor = new Set();
+
+// Database
+const dbPath = join(__dirname, "data.db");
+const db = new Database(dbPath);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    phone TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    song_credits INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER,
+    updated_at INTEGER
+  );
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone TEXT NOT NULL,
+    from_side TEXT NOT NULL,
+    content TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    read_flag INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_messages_phone ON messages(phone);
+`);
+
+function loadFromDb() {
+  const userRows = db.prepare("SELECT phone, name, song_credits FROM users").all();
+  for (const row of userRows) {
+    conversations[row.phone] = {
+      name: row.name,
+      messages: [],
+      state: { songCredits: row.song_credits },
+    };
+  }
+  const msgRows = db.prepare("SELECT phone, from_side, content, timestamp, read_flag FROM messages ORDER BY id").all();
+  for (const row of msgRows) {
+    const conv = conversations[row.phone];
+    if (conv) {
+      conv.messages.push({
+        from: row.from_side,
+        text: row.content,
+        timestamp: row.timestamp,
+        read: !!row.read_flag,
+      });
+    }
+  }
+}
+
+loadFromDb();
+
+function getConv(phone, name) {
+  if (!conversations[phone]) {
+    conversations[phone] = { name: name || phone, messages: [], state: { songCredits: 1 } };
+    const now = Date.now();
+    db.prepare("INSERT OR IGNORE INTO users (phone, name, song_credits, created_at, updated_at) VALUES (?, ?, 1, ?, ?)").run(phone, name || phone, now, now);
+  }
+  if (!conversations[phone].state) conversations[phone].state = { songCredits: 1 };
+  if (conversations[phone].state.songCredits === undefined) {
+    const row = db.prepare("SELECT song_credits FROM users WHERE phone = ?").get(phone);
+    conversations[phone].state.songCredits = row ? row.song_credits : 1;
+  }
+  return conversations[phone];
+}
+
+function saveMessage(phone, fromSide, content, timestamp, read = false) {
+  getConv(phone);
+  db.prepare("INSERT INTO messages (phone, from_side, content, timestamp, read_flag) VALUES (?, ?, ?, ?, ?)").run(phone, fromSide, content, timestamp, read ? 1 : 0);
+}
+
+function useSongCredit(phone) {
+  const conv = getConv(phone);
+  const newCredits = Math.max(0, (conv.state.songCredits ?? 1) - 1);
+  conv.state.songCredits = newCredits;
+  db.prepare("UPDATE users SET song_credits = ?, updated_at = ? WHERE phone = ?").run(newCredits, Date.now(), phone);
+}
+
+function addSongCredits(phone, count) {
+  const conv = getConv(phone);
+  const newCredits = Math.max(0, (conv.state.songCredits ?? 0) + count);
+  conv.state.songCredits = newCredits;
+  db.prepare("UPDATE users SET song_credits = ?, updated_at = ? WHERE phone = ?").run(newCredits, Date.now(), phone);
+  return newCredits;
+}
 
 function broadcast(event, data) {
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -90,6 +163,7 @@ async function sendMessage(to, text) {
   const convTo = getConv(to);
   const msg = { from: "me", text, timestamp: Date.now() };
   convTo.messages.push(msg);
+  saveMessage(to, "me", text, msg.timestamp, false);
   broadcast("message", { phone: to, message: msg });
 
   return data;
@@ -130,6 +204,7 @@ async function sendAudioMessage(to, mediaId) {
   const convTo = getConv(to);
   const msg = { from: "me", text: "🎵 [Audio]", timestamp: Date.now(), type: "audio" };
   convTo.messages.push(msg);
+  saveMessage(to, "me", "🎵 [Audio]", msg.timestamp, false);
   broadcast("message", { phone: to, message: msg });
 
   return data;
@@ -244,11 +319,11 @@ async function chat(phone) {
       const toolCall = message.tool_calls[0]; // Only process FIRST tool call
 
       if (toolCall.function.name === "generate_song") {
-        // HARD BLOCK: only one song per user
-        if (conv.state.songGenerated) {
+        const credits = conv.state.songCredits ?? 0;
+        if (credits <= 0) {
           await sendMessage(
             phone,
-            `✅ Deinen kostenlosen Song habe ich schon erstellt.\n\n${DONATION_TEXT}\n\nWenn du einen weiteren Song möchtest, antworte: „neuer Song“.`
+            `✅ Dein Song-Guthaben ist aufgebraucht.\n\n${DONATION_TEXT}\n\nWenn du weitere Songs möchtest, kannst du das Projekt unterstützen oder uns schreiben.`
           );
           return;
         }
@@ -284,7 +359,7 @@ async function chat(phone) {
           const uploadResult = await uploadMedia(result.buffer, "audio/mpeg");
           if (uploadResult.id) {
             await sendAudioMessage(phone, uploadResult.id);
-            conv.state.songGenerated = true;
+            useSongCredit(phone);
             await sendMessage(phone, `🎉 Hier ist dein Song!\n\n${DONATION_TEXT}`);
           }
         }
@@ -321,9 +396,27 @@ app.get("/api/conversations", (req, res) => {
 
 app.get("/api/conversations/:phone", (req, res) => {
   const phone = req.params.phone;
-  if (!conversations[phone]) return res.json({ phone, name: phone, messages: [] });
+  if (!conversations[phone]) return res.json({ phone, name: phone, messages: [], state: { songCredits: 0 } });
   conversations[phone].messages.forEach((m) => (m.read = true));
   res.json({ phone, ...conversations[phone] });
+});
+
+// List users with song credits (for dashboard)
+app.get("/api/users", (req, res) => {
+  const list = db.prepare("SELECT phone, name, song_credits FROM users ORDER BY updated_at DESC").all();
+  res.json(list.map((row) => ({ phone: row.phone, name: row.name, songCredits: row.song_credits })));
+});
+
+// Add song credits for a user (from dashboard)
+app.post("/api/users/:phone/songs", (req, res) => {
+  const phone = req.params.phone;
+  const add = Math.max(0, parseInt(req.body?.add ?? req.body?.songs ?? "1", 10) || 1);
+  try {
+    const newCredits = addSongCredits(phone, add);
+    res.json({ phone, songCredits: newCredits, added: add });
+  } catch (e) {
+    res.status(400).json({ error: "Nutzer nicht gefunden" });
+  }
 });
 
 app.get("/api/bot", (req, res) => res.json({ enabled: botEnabled }));
@@ -416,11 +509,14 @@ app.post("/wa", async (req, res) => {
       const text = msg.text?.body || "[media]";
       const contactName = value.contacts?.[0]?.profile?.name || from;
 
-      const convFrom = getConv(from);
+      const convFrom = getConv(from, contactName);
       convFrom.name = contactName;
+      db.prepare("UPDATE users SET name = ?, updated_at = ? WHERE phone = ?").run(contactName, Date.now(), from);
 
-      const newMsg = { from, text, timestamp: parseInt(msg.timestamp) * 1000, read: false };
+      const ts = parseInt(msg.timestamp) * 1000;
+      const newMsg = { from, text, timestamp: ts, read: false };
       convFrom.messages.push(newMsg);
+      saveMessage(from, from, text, ts, false);
 
       console.log(`Message from ${contactName}: ${text}`);
       broadcast("message", { phone: from, message: newMsg });
