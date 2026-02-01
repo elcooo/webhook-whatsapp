@@ -3,725 +3,632 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WhatsApp-Dashboard</title>
+  <title>KI-Song-Bot - Dein persönlicher Song per WhatsApp</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #111b21;
-      color: #e9edef;
-      height: 100vh;
-      display: flex;
+
+    :root {
+      --bg-dark: #111b21;
+      --bg-card: #1f2c34;
+      --bg-light: #202c33;
+      --accent: #00a884;
+      --accent-hover: #00c49a;
+      --text: #e9edef;
+      --text-muted: #8696a0;
+      --border: #2a3942;
     }
 
-    /* Sidebar */
-    .sidebar {
-      width: 350px;
-      background: #111b21;
-      border-right: 1px solid #2a3942;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 32px;
+      background: rgba(17, 27, 33, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
     }
-    .sidebar-header {
-      padding: 16px;
-      background: #202c33;
+
+    .logo {
       font-size: 20px;
-      font-weight: 500;
-    }
-    .conversations {
-      flex: 1;
-      overflow-y: auto;
-    }
-    .conversation {
-      padding: 12px 16px;
-      border-bottom: 1px solid #2a3942;
-      cursor: pointer;
+      font-weight: 600;
+      color: var(--accent);
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
-    .conversation:hover { background: #2a3942; }
-    .conversation.active { background: #2a3942; }
-    .avatar {
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .nav-btn {
+      background: var(--accent);
+      color: var(--bg-dark);
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .nav-btn:hover {
+      background: var(--accent-hover);
+      color: var(--bg-dark);
+    }
+
+    /* Hero Section */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      background: linear-gradient(180deg, var(--bg-dark) 0%, #0d1418 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(0, 168, 132, 0.15) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      background: rgba(0, 168, 132, 0.15);
+      color: var(--accent);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      border: 1px solid rgba(0, 168, 132, 0.3);
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 700;
+      margin-bottom: 24px;
+      max-width: 800px;
+      line-height: 1.1;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent) 0%, #25D366 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin-bottom: 40px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      border-radius: 30px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg-dark);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(0, 168, 132, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--bg-light);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card);
+      border-color: var(--accent);
+    }
+
+    /* Features Section */
+    .features {
+      padding: 100px 24px;
+      background: var(--bg-dark);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-header h2 {
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      background: rgba(0, 168, 132, 0.15);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    /* How it Works */
+    .how-it-works {
+      padding: 100px 24px;
+      background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-card) 100%);
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .step {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .step-number {
       width: 48px;
       height: 48px;
+      background: var(--accent);
+      color: var(--bg-dark);
       border-radius: 50%;
-      background: #00a884;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 20px;
-      font-weight: 500;
-    }
-    .conv-info { flex: 1; min-width: 0; }
-    .conv-name {
-      font-weight: 500;
-      margin-bottom: 4px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .conv-preview {
-      font-size: 13px;
-      color: #8696a0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .conv-meta {
-      text-align: right;
-      font-size: 12px;
-      color: #8696a0;
-    }
-    .unread-badge {
-      background: #00a884;
-      color: #111b21;
-      font-size: 12px;
-      padding: 2px 6px;
-      border-radius: 10px;
-      margin-top: 4px;
-      display: inline-block;
+      font-weight: 700;
+      flex-shrink: 0;
     }
 
-    /* Chat Area */
-    .chat-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: #0b141a;
+    .step-content h3 {
+      font-size: 20px;
+      margin-bottom: 8px;
     }
-    .chat-header {
+
+    .step-content p {
+      color: var(--text-muted);
+    }
+
+    /* Demo Section */
+    .demo {
+      padding: 100px 24px;
+      background: var(--bg-card);
+    }
+
+    .demo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 60px;
+      flex-wrap: wrap;
+    }
+
+    .phone-mockup {
+      width: 300px;
+      background: var(--bg-dark);
+      border-radius: 32px;
+      padding: 12px;
+      border: 3px solid var(--border);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .phone-screen {
+      background: #0b141a;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+
+    .phone-header {
+      background: var(--bg-light);
       padding: 12px 16px;
-      background: #202c33;
-      border-bottom: 1px solid #2a3942;
       display: flex;
       align-items: center;
       gap: 12px;
     }
-    .chat-header .avatar { width: 40px; height: 40px; font-size: 16px; }
-    .chat-header-info h2 { font-size: 16px; font-weight: 500; }
-    .chat-header-info p { font-size: 13px; color: #8696a0; }
 
-    .messages {
-      flex: 1;
-      overflow-y: auto;
+    .phone-avatar {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .phone-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .phone-messages {
       padding: 16px;
+      min-height: 350px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 8px;
     }
-    .message {
-      max-width: 65%;
+
+    .phone-msg {
+      max-width: 85%;
       padding: 8px 12px;
       border-radius: 8px;
-      position: relative;
+      font-size: 13px;
     }
-    .message.incoming {
-      background: #202c33;
+
+    .phone-msg.in {
+      background: var(--bg-light);
       align-self: flex-start;
       border-top-left-radius: 0;
     }
-    .message.outgoing {
+
+    .phone-msg.out {
       background: #005c4b;
       align-self: flex-end;
       border-top-right-radius: 0;
     }
-    .message-text { word-wrap: break-word; line-height: 1.4; }
-    .message-time {
-      font-size: 11px;
-      color: #8696a0;
-      text-align: right;
-      margin-top: 4px;
+
+    .demo-content {
+      max-width: 450px;
     }
 
-    .empty-state {
-      flex: 1;
+    .demo-content h2 {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+
+    .demo-content p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    /* CTA Section */
+    .cta {
+      padding: 100px 24px;
+      background: var(--bg-dark);
+      text-align: center;
+    }
+
+    .cta h2 {
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+
+    .cta p {
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      font-size: 18px;
+    }
+
+    /* Footer */
+    footer {
+      padding: 40px 24px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .footer-links {
       display: flex;
-      align-items: center;
       justify-content: center;
-      color: #8696a0;
+      gap: 32px;
+      margin-bottom: 20px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
       font-size: 14px;
     }
 
-    /* Input Area */
-    .input-area {
-      padding: 12px 16px;
-      background: #202c33;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-    .input-area input {
-      flex: 1;
-      background: #2a3942;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 16px;
-      color: #e9edef;
-      font-size: 15px;
-      outline: none;
-    }
-    .input-area input::placeholder { color: #8696a0; }
-    .send-btn {
-      background: #00a884;
-      border: none;
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .send-btn:hover { background: #00c49a; }
-    .send-btn svg { fill: #111b21; }
-    .audio-btn {
-      background: transparent;
-      border: none;
-      width: 44px;
-      height: 44px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-    .audio-btn:hover { background: #2a3942; }
-    .audio-btn svg { fill: #8696a0; }
-    .audio-input { display: none; }
-    .music-btn {
-      background: transparent;
-      border: none;
-      width: 44px;
-      height: 44px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-    .music-btn:hover { background: #2a3942; }
-    .music-btn svg { fill: #8696a0; }
-    .music-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .music-btn.generating svg { animation: pulse 1s infinite; }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+    .footer-links a:hover {
+      color: var(--accent);
     }
 
-    /* Bot Toggle */
-    .bot-toggle {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px;
-      background: #182229;
-      border-bottom: 1px solid #2a3942;
-    }
-    .bot-toggle label {
-      font-size: 14px;
-      color: #8696a0;
-      flex: 1;
-    }
-    .toggle-switch {
-      position: relative;
-      width: 44px;
-      height: 24px;
-    }
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .toggle-slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #3b4a54;
-      transition: .3s;
-      border-radius: 24px;
-    }
-    .toggle-slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: #8696a0;
-      transition: .3s;
-      border-radius: 50%;
-    }
-    .toggle-switch input:checked + .toggle-slider {
-      background-color: #00a884;
-    }
-    .toggle-switch input:checked + .toggle-slider:before {
-      transform: translateX(20px);
-      background-color: #111b21;
-    }
-    .bot-status {
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 4px;
-      background: #00a884;
-      color: #111b21;
-    }
-    .bot-status.off {
-      background: #3b4a54;
-      color: #8696a0;
-    }
-
-    /* Song credits panel */
-    .songs-panel {
-      background: #182229;
-      border-bottom: 1px solid #2a3942;
-      max-height: 280px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    .songs-panel-header {
-      padding: 10px 16px;
-      font-size: 14px;
-      color: #8696a0;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      user-select: none;
-    }
-    .songs-panel-header:hover { background: #2a3942; }
-    .songs-panel-content {
-      overflow-y: auto;
-      padding: 8px;
-    }
-    .user-song-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      background: #202c33;
-      border-radius: 8px;
-      margin-bottom: 6px;
+    .footer-copy {
+      color: var(--text-muted);
       font-size: 13px;
     }
-    .user-song-row .name { flex: 1; font-weight: 500; color: #e9edef; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-song-row .phone { color: #8696a0; font-size: 12px; }
-    .user-song-row .credits { background: #00a884; color: #111b21; padding: 2px 8px; border-radius: 10px; font-weight: 600; min-width: 24px; text-align: center; }
-    .user-song-row .add-row { display: flex; gap: 4px; align-items: center; }
-    .user-song-row input.add-input { width: 40px; padding: 4px 6px; border: none; border-radius: 4px; background: #2a3942; color: #e9edef; font-size: 13px; text-align: center; }
-    .user-song-row button.add-btn { background: #00a884; border: none; color: #111b21; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; }
-    .user-song-row button.add-btn:hover { background: #00c49a; }
 
-    /* Welcome Screen */
-    .welcome {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #222e35;
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav {
+        padding: 12px 16px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        padding: 100px 16px 60px;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        width: 100%;
+        max-width: 300px;
+      }
+
+      .btn {
+        justify-content: center;
+      }
+
+      .demo-container {
+        flex-direction: column;
+      }
+
+      .step {
+        flex-direction: column;
+        text-align: center;
+        align-items: center;
+      }
     }
-    .welcome h1 { font-size: 32px; font-weight: 300; margin-bottom: 16px; }
-    .welcome p { color: #8696a0; text-align: center; max-width: 500px; line-height: 1.6; }
+
+    /* Animations */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .phone-mockup {
+      animation: float 4s ease-in-out infinite;
+    }
   </style>
 </head>
 <body>
-  <div class="sidebar">
-    <div class="sidebar-header">WhatsApp-Dashboard</div>
-    <div class="bot-toggle">
-      <label>KI-Bot <span id="bot-status" class="bot-status">AN</span></label>
-      <div class="toggle-switch">
-        <input type="checkbox" id="bot-toggle" checked onchange="toggleBot(this.checked)">
-        <span class="toggle-slider"></span>
+  <nav>
+    <div class="logo">
+      <span>🎵</span> KI-Song-Bot
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">So geht's</a>
+      <a href="dashboard.html" class="nav-btn">Dashboard</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-badge">🤖 Powered by KI</div>
+    <h1>Dein persönlicher Song <span>per WhatsApp</span></h1>
+    <p>Schick uns einfach eine Nachricht mit deiner Song-Idee und unsere KI erstellt dir einen einzigartigen, personalisierten Song - in wenigen Minuten.</p>
+    <div class="hero-buttons">
+      <a href="https://wa.me/YOUR_PHONE_NUMBER" class="btn btn-primary" target="_blank">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        Jetzt Song erstellen
+      </a>
+      <a href="#how-it-works" class="btn btn-secondary">So funktioniert's</a>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-header">
+        <h2>Warum KI-Song-Bot?</h2>
+        <p>Einzigartige, personalisierte Songs - einfach per WhatsApp</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Schnell & Einfach</h3>
+          <p>Kein Download, keine App - einfach eine WhatsApp-Nachricht schicken und in wenigen Minuten deinen Song erhalten.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <h3>100% Personalisiert</h3>
+          <p>Jeder Song wird individuell nach deinen Wünschen erstellt. Erzähl uns deine Geschichte und wir machen Musik daraus.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>KI-Powered</h3>
+          <p>Modernste KI-Technologie erstellt professionelle Songs mit Gesang, Melodie und Instrumentierung.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎁</div>
+          <h3>Perfektes Geschenk</h3>
+          <p>Überrasche jemanden mit einem einzigartigen Song zum Geburtstag, Jahrestag oder einfach so.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎵</div>
+          <h3>Alle Genres</h3>
+          <p>Pop, Rock, Hip-Hop, Schlager, Klassik - sag uns deinen Lieblingsstil und wir passen den Song an.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <h3>Deutsch & Englisch</h3>
+          <p>Songs in Deutsch oder Englisch - du entscheidest, in welcher Sprache dein Song sein soll.</p>
+        </div>
       </div>
     </div>
-    <div class="songs-panel" id="songs-panel">
-      <div class="songs-panel-header" onclick="toggleSongsPanel()">
-        <span>🎵 Song-Guthaben</span>
-        <span id="songs-panel-arrow">▼</span>
+  </section>
+
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <h2>So einfach geht's</h2>
+        <p>In 3 Schritten zu deinem Song</p>
       </div>
-      <div class="songs-panel-content" id="songs-panel-content" style="display:none;">
-        <div id="users-list"></div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Schreib uns auf WhatsApp</h3>
+            <p>Starte einen Chat mit unserem Bot und erzähl uns von deiner Song-Idee. Worum soll es gehen? Für wen ist der Song?</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Die KI macht den Rest</h3>
+            <p>Unsere KI analysiert deine Wünsche und erstellt einen einzigartigen Song mit Text, Melodie und professionellem Sound.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Empfange deinen Song</h3>
+            <p>In wenigen Minuten bekommst du deinen fertigen Song direkt als Audio-Nachricht auf WhatsApp geschickt.</p>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="conversations" id="conversations">
-      <!-- Conversations will be loaded here -->
+  </section>
+
+  <section class="demo">
+    <div class="container">
+      <div class="demo-container">
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div class="phone-header">
+              <div class="phone-avatar">🎵</div>
+              <div class="phone-name">KI-Song-Bot</div>
+            </div>
+            <div class="phone-messages">
+              <div class="phone-msg in">Hallo! Ich bin der KI-Song-Bot. Erzähl mir, was für einen Song du haben möchtest!</div>
+              <div class="phone-msg out">Ich möchte einen Geburtstagssong für meine Freundin Lisa. Sie liebt Pop-Musik und Katzen.</div>
+              <div class="phone-msg in">Super! Ich erstelle jetzt einen fröhlichen Pop-Song für Lisa mit dem Thema Geburtstag und Katzen. Das dauert etwa 2-3 Minuten...</div>
+              <div class="phone-msg in">🎵 [Audio-Nachricht]</div>
+              <div class="phone-msg in">🎉 Hier ist dein Song! Ich hoffe, Lisa freut sich!</div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-content">
+          <h2>Echte Gespräche, echte Songs</h2>
+          <p>Unser Bot versteht natürliche Sprache. Erzähl einfach, was du dir vorstellst - je mehr Details, desto besser wird dein Song. Du kannst den Anlass, die Person, den Stil und die Stimmung beschreiben.</p>
+          <a href="https://wa.me/YOUR_PHONE_NUMBER" class="btn btn-primary" target="_blank">Jetzt ausprobieren</a>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="chat-area" id="chat-area">
-    <div class="welcome">
-      <h1>WhatsApp-Web-Dashboard</h1>
-      <p>Wähle links eine Unterhaltung, um Nachrichten zu sehen und zu antworten.<br>Neue Nachrichten erscheinen automatisch.</p>
+  <section class="cta">
+    <div class="container">
+      <h2>Bereit für deinen Song?</h2>
+      <p>Erstelle jetzt deinen ersten personalisierten KI-Song - kostenlos!</p>
+      <a href="https://wa.me/YOUR_PHONE_NUMBER" class="btn btn-primary" target="_blank">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        Song erstellen auf WhatsApp
+      </a>
     </div>
-  </div>
+  </section>
 
-  <script>
-    let currentPhone = null;
-    let conversations = {};
-
-    // Format timestamp
-    function formatTime(ts) {
-      const d = new Date(ts);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function formatDate(ts) {
-      const d = new Date(ts);
-      const today = new Date();
-      if (d.toDateString() === today.toDateString()) {
-        return formatTime(ts);
-      }
-      return d.toLocaleDateString();
-    }
-
-    // Get initials for avatar
-    function getInitials(name) {
-      return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    }
-
-    // Render conversation list
-    function renderConversations() {
-      const container = document.getElementById('conversations');
-      const entries = Object.entries(conversations).sort((a, b) => {
-        const aLast = a[1].messages[a[1].messages.length - 1]?.timestamp || 0;
-        const bLast = b[1].messages[b[1].messages.length - 1]?.timestamp || 0;
-        return bLast - aLast;
-      });
-
-      container.innerHTML = entries.map(([phone, data]) => {
-        const lastMsg = data.messages[data.messages.length - 1];
-        const unread = data.messages.filter(m => m.from !== 'me' && !m.read).length;
-        const preview = lastMsg ? (lastMsg.from === 'me' ? 'Du: ' : '') + lastMsg.text : '';
-
-        return `
-          <div class="conversation ${phone === currentPhone ? 'active' : ''}" onclick="selectConversation('${phone}')">
-            <div class="avatar">${getInitials(data.name)}</div>
-            <div class="conv-info">
-              <div class="conv-name">${data.name}</div>
-              <div class="conv-preview">${preview}</div>
-            </div>
-            <div class="conv-meta">
-              <div>${lastMsg ? formatDate(lastMsg.timestamp) : ''}</div>
-              ${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // Render chat messages
-    function renderChat() {
-      const container = document.getElementById('chat-area');
-      if (!currentPhone || !conversations[currentPhone]) {
-        container.innerHTML = `
-          <div class="welcome">
-            <h1>WhatsApp-Web-Dashboard</h1>
-            <p>Wähle links eine Unterhaltung, um Nachrichten zu sehen und zu antworten.<br>Neue Nachrichten erscheinen automatisch.</p>
-          </div>
-        `;
-        return;
-      }
-
-      const conv = conversations[currentPhone];
-      container.innerHTML = `
-        <div class="chat-header">
-          <div class="avatar">${getInitials(conv.name)}</div>
-          <div class="chat-header-info">
-            <h2>${conv.name}</h2>
-            <p>+${currentPhone}</p>
-          </div>
-        </div>
-        <div class="messages" id="messages">
-          ${conv.messages.map(msg => `
-            <div class="message ${msg.from === 'me' ? 'outgoing' : 'incoming'}">
-              <div class="message-text">${escapeHtml(msg.text)}</div>
-              <div class="message-time">${formatTime(msg.timestamp)}</div>
-            </div>
-          `).join('')}
-        </div>
-        <div class="input-area">
-          <input type="file" id="audio-input" class="audio-input" accept="audio/*" onchange="sendAudio(this)">
-          <button class="audio-btn" onclick="document.getElementById('audio-input').click()" title="Audio senden">
-            <svg width="24" height="24" viewBox="0 0 24 24">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
-            </svg>
-          </button>
-          <button class="music-btn" id="music-btn" onclick="generateMusic()" title="KI-Song erstellen">
-            <svg width="24" height="24" viewBox="0 0 24 24">
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-            </svg>
-          </button>
-          <input type="text" id="message-input" placeholder="Nachricht eingeben" onkeypress="handleKeyPress(event)">
-          <button class="send-btn" onclick="sendMessage()">
-            <svg width="24" height="24" viewBox="0 0 24 24">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-            </svg>
-          </button>
-        </div>
-      `;
-
-      // Scroll to bottom
-      const messagesDiv = document.getElementById('messages');
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      // Mark messages as read
-      conv.messages.forEach(m => m.read = true);
-      renderConversations();
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    // Select a conversation
-    function selectConversation(phone) {
-      currentPhone = phone;
-      renderConversations();
-      renderChat();
-    }
-
-    // Send a message
-    async function sendMessage() {
-      const input = document.getElementById('message-input');
-      const text = input.value.trim();
-      if (!text || !currentPhone) return;
-
-      input.value = '';
-      input.disabled = true;
-
-      try {
-        await fetch('/api/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: currentPhone, text })
-        });
-      } catch (err) {
-        console.error('Failed to send:', err);
-        alert('Nachricht konnte nicht gesendet werden');
-      }
-
-      input.disabled = false;
-      input.focus();
-    }
-
-    function handleKeyPress(e) {
-      if (e.key === 'Enter') sendMessage();
-    }
-
-    // Generate AI music
-    async function generateMusic() {
-      if (!currentPhone) return;
-
-      const btn = document.getElementById('music-btn');
-      btn.disabled = true;
-      btn.classList.add('generating');
-
-      try {
-        const res = await fetch('/api/generate-music', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: currentPhone })
-        });
-        const data = await res.json();
-        if (data.error) {
-          alert('Musik konnte nicht erstellt werden: ' + data.error);
-        }
-      } catch (err) {
-        console.error('Failed to generate music:', err);
-        alert('Failed to generate music');
-      }
-
-      btn.disabled = false;
-      btn.classList.remove('generating');
-    }
-
-    // Send audio file
-    async function sendAudio(input) {
-      const file = input.files[0];
-      if (!file || !currentPhone) {
-        input.value = '';
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('to', currentPhone);
-      formData.append('audio', file);
-
-      try {
-        const res = await fetch('/api/send-audio', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        if (data.error) {
-          alert('Audio konnte nicht gesendet werden: ' + (data.error.message || data.error));
-        }
-      } catch (err) {
-        console.error('Failed to send audio:', err);
-        alert('Audio konnte nicht gesendet werden');
-      }
-
-      input.value = '';
-    }
-
-    // Load initial conversations
-    async function loadConversations() {
-      try {
-        const res = await fetch('/api/conversations');
-        const list = await res.json();
-        for (const conv of list) {
-          const detail = await fetch(`/api/conversations/${conv.phone}`);
-          conversations[conv.phone] = await detail.json();
-        }
-        renderConversations();
-      } catch (err) {
-        console.error('Failed to load conversations:', err);
-      }
-    }
-
-    // Setup SSE for real-time updates
-    function setupSSE() {
-      const eventSource = new EventSource('/api/events');
-
-      eventSource.addEventListener('message', (e) => {
-        const { phone, message } = JSON.parse(e.data);
-        if (!conversations[phone]) {
-          conversations[phone] = { name: phone, messages: [] };
-        }
-        conversations[phone].messages.push(message);
-        renderConversations();
-        if (phone === currentPhone) {
-          renderChat();
-        }
-      });
-
-      eventSource.addEventListener('conversation_update', (e) => {
-        const { phone, name } = JSON.parse(e.data);
-        if (conversations[phone]) {
-          conversations[phone].name = name;
-        } else {
-          conversations[phone] = { name, messages: [] };
-        }
-        renderConversations();
-        if (phone === currentPhone) {
-          renderChat();
-        }
-      });
-
-      eventSource.addEventListener('status', (e) => {
-        console.log('Status update:', JSON.parse(e.data));
-      });
-
-      eventSource.onerror = () => {
-        console.log('SSE connection lost, reconnecting...');
-      };
-    }
-
-    // Bot toggle
-    async function loadBotStatus() {
-      try {
-        const res = await fetch('/api/bot');
-        const data = await res.json();
-        updateBotUI(data.enabled);
-      } catch (err) {
-        console.error('Failed to load bot status:', err);
-      }
-    }
-
-    async function toggleBot(enabled) {
-      try {
-        const res = await fetch('/api/bot', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enabled })
-        });
-        const data = await res.json();
-        updateBotUI(data.enabled);
-      } catch (err) {
-        console.error('Failed to toggle bot:', err);
-      }
-    }
-
-    function updateBotUI(enabled) {
-      const toggle = document.getElementById('bot-toggle');
-      const status = document.getElementById('bot-status');
-      toggle.checked = enabled;
-      status.textContent = enabled ? 'AN' : 'AUS';
-      status.className = 'bot-status' + (enabled ? '' : ' off');
-    }
-
-    // Song credits: load users and add songs
-    let usersList = [];
-
-    async function loadUsers() {
-      try {
-        const res = await fetch('/api/users');
-        usersList = await res.json();
-        renderUsers();
-      } catch (err) {
-        console.error('Failed to load users:', err);
-      }
-    }
-
-    function renderUsers() {
-      const container = document.getElementById('users-list');
-      if (!usersList.length) {
-        container.innerHTML = '<div style="padding:12px;color:#8696a0;font-size:13px;">Noch keine Nutzer.</div>';
-        return;
-      }
-      container.innerHTML = usersList.map(u => `
-        <div class="user-song-row">
-          <div style="flex:1;min-width:0;">
-            <div class="name">${escapeHtml(u.name)}</div>
-            <div class="phone">+${u.phone}</div>
-          </div>
-          <span class="credits">${u.songCredits}</span>
-          <div class="add-row">
-            <input type="number" class="add-input" id="add-${u.phone}" min="1" value="1" />
-            <button class="add-btn" onclick="addSongsForUser('${u.phone}')">Hinzufügen</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function toggleSongsPanel() {
-      const content = document.getElementById('songs-panel-content');
-      const arrow = document.getElementById('songs-panel-arrow');
-      const isOpen = content.style.display !== 'none';
-      content.style.display = isOpen ? 'none' : 'block';
-      arrow.textContent = isOpen ? '▼' : '▲';
-      if (!isOpen) loadUsers();
-    }
-
-    async function addSongsForUser(phone) {
-      const input = document.getElementById('add-' + phone);
-      const add = Math.max(1, parseInt(input?.value || '1', 10));
-      try {
-        const res = await fetch('/api/users/' + encodeURIComponent(phone) + '/songs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ add })
-        });
-        const data = await res.json();
-        if (data.songCredits !== undefined) {
-          const u = usersList.find(x => x.phone === phone);
-          if (u) u.songCredits = data.songCredits;
-          renderUsers();
-        }
-      } catch (err) {
-        console.error('Failed to add songs:', err);
-        alert('Songs konnten nicht hinzugefügt werden');
-      }
-    }
-
-    // Initialize
-    loadConversations();
-    loadBotStatus();
-    setupSSE();
-  </script>
+  <footer>
+    <div class="footer-links">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="#features">Features</a>
+      <a href="#how-it-works">So geht's</a>
+    </div>
+    <div class="footer-copy">
+      &copy; 2025 KI-Song-Bot. Erstellt mit ❤️ und KI.
+    </div>
+  </footer>
 </body>
 </html>

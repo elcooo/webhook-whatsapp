@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp-Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #111b21;
+      color: #e9edef;
+      height: 100vh;
+      display: flex;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 350px;
+      background: #111b21;
+      border-right: 1px solid #2a3942;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-header {
+      padding: 16px;
+      background: #202c33;
+      font-size: 20px;
+      font-weight: 500;
+    }
+    .conversations {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .conversation {
+      padding: 12px 16px;
+      border-bottom: 1px solid #2a3942;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .conversation:hover { background: #2a3942; }
+    .conversation.active { background: #2a3942; }
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #00a884;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 500;
+    }
+    .conv-info { flex: 1; min-width: 0; }
+    .conv-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .conv-preview {
+      font-size: 13px;
+      color: #8696a0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .conv-meta {
+      text-align: right;
+      font-size: 12px;
+      color: #8696a0;
+    }
+    .unread-badge {
+      background: #00a884;
+      color: #111b21;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    /* Chat Area */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #0b141a;
+    }
+    .chat-header {
+      padding: 12px 16px;
+      background: #202c33;
+      border-bottom: 1px solid #2a3942;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-header .avatar { width: 40px; height: 40px; font-size: 16px; }
+    .chat-header-info h2 { font-size: 16px; font-weight: 500; }
+    .chat-header-info p { font-size: 13px; color: #8696a0; }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .message {
+      max-width: 65%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      position: relative;
+    }
+    .message.incoming {
+      background: #202c33;
+      align-self: flex-start;
+      border-top-left-radius: 0;
+    }
+    .message.outgoing {
+      background: #005c4b;
+      align-self: flex-end;
+      border-top-right-radius: 0;
+    }
+    .message-text { word-wrap: break-word; line-height: 1.4; }
+    .message-time {
+      font-size: 11px;
+      color: #8696a0;
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8696a0;
+      font-size: 14px;
+    }
+
+    /* Input Area */
+    .input-area {
+      padding: 12px 16px;
+      background: #202c33;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .input-area input {
+      flex: 1;
+      background: #2a3942;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #e9edef;
+      font-size: 15px;
+      outline: none;
+    }
+    .input-area input::placeholder { color: #8696a0; }
+    .send-btn {
+      background: #00a884;
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .send-btn:hover { background: #00c49a; }
+    .send-btn svg { fill: #111b21; }
+    .audio-btn {
+      background: transparent;
+      border: none;
+      width: 44px;
+      height: 44px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    .audio-btn:hover { background: #2a3942; }
+    .audio-btn svg { fill: #8696a0; }
+    .audio-input { display: none; }
+    .music-btn {
+      background: transparent;
+      border: none;
+      width: 44px;
+      height: 44px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    .music-btn:hover { background: #2a3942; }
+    .music-btn svg { fill: #8696a0; }
+    .music-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .music-btn.generating svg { animation: pulse 1s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Bot Toggle */
+    .bot-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: #182229;
+      border-bottom: 1px solid #2a3942;
+    }
+    .bot-toggle label {
+      font-size: 14px;
+      color: #8696a0;
+      flex: 1;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #3b4a54;
+      transition: .3s;
+      border-radius: 24px;
+    }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #8696a0;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: #00a884;
+    }
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+      background-color: #111b21;
+    }
+    .bot-status {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #00a884;
+      color: #111b21;
+    }
+    .bot-status.off {
+      background: #3b4a54;
+      color: #8696a0;
+    }
+
+    /* Song credits panel */
+    .songs-panel {
+      background: #182229;
+      border-bottom: 1px solid #2a3942;
+      max-height: 280px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .songs-panel-header {
+      padding: 10px 16px;
+      font-size: 14px;
+      color: #8696a0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .songs-panel-header:hover { background: #2a3942; }
+    .songs-panel-content {
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .user-song-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #202c33;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .user-song-row .name { flex: 1; font-weight: 500; color: #e9edef; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-song-row .phone { color: #8696a0; font-size: 12px; }
+    .user-song-row .credits { background: #00a884; color: #111b21; padding: 2px 8px; border-radius: 10px; font-weight: 600; min-width: 24px; text-align: center; }
+    .user-song-row .add-row { display: flex; gap: 4px; align-items: center; }
+    .user-song-row input.add-input { width: 40px; padding: 4px 6px; border: none; border-radius: 4px; background: #2a3942; color: #e9edef; font-size: 13px; text-align: center; }
+    .user-song-row button.add-btn { background: #00a884; border: none; color: #111b21; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; }
+    .user-song-row button.add-btn:hover { background: #00c49a; }
+
+    /* Welcome Screen */
+    .welcome {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #222e35;
+    }
+    .welcome h1 { font-size: 32px; font-weight: 300; margin-bottom: 16px; }
+    .welcome p { color: #8696a0; text-align: center; max-width: 500px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">WhatsApp-Dashboard</div>
+    <div class="bot-toggle">
+      <label>KI-Bot <span id="bot-status" class="bot-status">AN</span></label>
+      <div class="toggle-switch">
+        <input type="checkbox" id="bot-toggle" checked onchange="toggleBot(this.checked)">
+        <span class="toggle-slider"></span>
+      </div>
+    </div>
+    <div class="songs-panel" id="songs-panel">
+      <div class="songs-panel-header" onclick="toggleSongsPanel()">
+        <span>🎵 Song-Guthaben</span>
+        <span id="songs-panel-arrow">▼</span>
+      </div>
+      <div class="songs-panel-content" id="songs-panel-content" style="display:none;">
+        <div id="users-list"></div>
+      </div>
+    </div>
+    <div class="conversations" id="conversations">
+      <!-- Conversations will be loaded here -->
+    </div>
+  </div>
+
+  <div class="chat-area" id="chat-area">
+    <div class="welcome">
+      <h1>WhatsApp-Web-Dashboard</h1>
+      <p>Wähle links eine Unterhaltung, um Nachrichten zu sehen und zu antworten.<br>Neue Nachrichten erscheinen automatisch.</p>
+    </div>
+  </div>
+
+  <script>
+    let currentPhone = null;
+    let conversations = {};
+
+    // Format timestamp
+    function formatTime(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatDate(ts) {
+      const d = new Date(ts);
+      const today = new Date();
+      if (d.toDateString() === today.toDateString()) {
+        return formatTime(ts);
+      }
+      return d.toLocaleDateString();
+    }
+
+    // Get initials for avatar
+    function getInitials(name) {
+      return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    }
+
+    // Render conversation list
+    function renderConversations() {
+      const container = document.getElementById('conversations');
+      const entries = Object.entries(conversations).sort((a, b) => {
+        const aLast = a[1].messages[a[1].messages.length - 1]?.timestamp || 0;
+        const bLast = b[1].messages[b[1].messages.length - 1]?.timestamp || 0;
+        return bLast - aLast;
+      });
+
+      container.innerHTML = entries.map(([phone, data]) => {
+        const lastMsg = data.messages[data.messages.length - 1];
+        const unread = data.messages.filter(m => m.from !== 'me' && !m.read).length;
+        const preview = lastMsg ? (lastMsg.from === 'me' ? 'Du: ' : '') + lastMsg.text : '';
+
+        return `
+          <div class="conversation ${phone === currentPhone ? 'active' : ''}" onclick="selectConversation('${phone}')">
+            <div class="avatar">${getInitials(data.name)}</div>
+            <div class="conv-info">
+              <div class="conv-name">${data.name}</div>
+              <div class="conv-preview">${preview}</div>
+            </div>
+            <div class="conv-meta">
+              <div>${lastMsg ? formatDate(lastMsg.timestamp) : ''}</div>
+              ${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render chat messages
+    function renderChat() {
+      const container = document.getElementById('chat-area');
+      if (!currentPhone || !conversations[currentPhone]) {
+        container.innerHTML = `
+          <div class="welcome">
+            <h1>WhatsApp-Web-Dashboard</h1>
+            <p>Wähle links eine Unterhaltung, um Nachrichten zu sehen und zu antworten.<br>Neue Nachrichten erscheinen automatisch.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const conv = conversations[currentPhone];
+      container.innerHTML = `
+        <div class="chat-header">
+          <div class="avatar">${getInitials(conv.name)}</div>
+          <div class="chat-header-info">
+            <h2>${conv.name}</h2>
+            <p>+${currentPhone}</p>
+          </div>
+        </div>
+        <div class="messages" id="messages">
+          ${conv.messages.map(msg => `
+            <div class="message ${msg.from === 'me' ? 'outgoing' : 'incoming'}">
+              <div class="message-text">${escapeHtml(msg.text)}</div>
+              <div class="message-time">${formatTime(msg.timestamp)}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="input-area">
+          <input type="file" id="audio-input" class="audio-input" accept="audio/*" onchange="sendAudio(this)">
+          <button class="audio-btn" onclick="document.getElementById('audio-input').click()" title="Audio senden">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+            </svg>
+          </button>
+          <button class="music-btn" id="music-btn" onclick="generateMusic()" title="KI-Song erstellen">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+            </svg>
+          </button>
+          <input type="text" id="message-input" placeholder="Nachricht eingeben" onkeypress="handleKeyPress(event)">
+          <button class="send-btn" onclick="sendMessage()">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </div>
+      `;
+
+      // Scroll to bottom
+      const messagesDiv = document.getElementById('messages');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+      // Mark messages as read
+      conv.messages.forEach(m => m.read = true);
+      renderConversations();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Select a conversation
+    function selectConversation(phone) {
+      currentPhone = phone;
+      renderConversations();
+      renderChat();
+    }
+
+    // Send a message
+    async function sendMessage() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text || !currentPhone) return;
+
+      input.value = '';
+      input.disabled = true;
+
+      try {
+        await fetch('/api/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: currentPhone, text })
+        });
+      } catch (err) {
+        console.error('Failed to send:', err);
+        alert('Nachricht konnte nicht gesendet werden');
+      }
+
+      input.disabled = false;
+      input.focus();
+    }
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') sendMessage();
+    }
+
+    // Generate AI music
+    async function generateMusic() {
+      if (!currentPhone) return;
+
+      const btn = document.getElementById('music-btn');
+      btn.disabled = true;
+      btn.classList.add('generating');
+
+      try {
+        const res = await fetch('/api/generate-music', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: currentPhone })
+        });
+        const data = await res.json();
+        if (data.error) {
+          alert('Musik konnte nicht erstellt werden: ' + data.error);
+        }
+      } catch (err) {
+        console.error('Failed to generate music:', err);
+        alert('Failed to generate music');
+      }
+
+      btn.disabled = false;
+      btn.classList.remove('generating');
+    }
+
+    // Send audio file
+    async function sendAudio(input) {
+      const file = input.files[0];
+      if (!file || !currentPhone) {
+        input.value = '';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('to', currentPhone);
+      formData.append('audio', file);
+
+      try {
+        const res = await fetch('/api/send-audio', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.error) {
+          alert('Audio konnte nicht gesendet werden: ' + (data.error.message || data.error));
+        }
+      } catch (err) {
+        console.error('Failed to send audio:', err);
+        alert('Audio konnte nicht gesendet werden');
+      }
+
+      input.value = '';
+    }
+
+    // Load initial conversations
+    async function loadConversations() {
+      try {
+        const res = await fetch('/api/conversations');
+        const list = await res.json();
+        for (const conv of list) {
+          const detail = await fetch(`/api/conversations/${conv.phone}`);
+          conversations[conv.phone] = await detail.json();
+        }
+        renderConversations();
+      } catch (err) {
+        console.error('Failed to load conversations:', err);
+      }
+    }
+
+    // Setup SSE for real-time updates
+    function setupSSE() {
+      const eventSource = new EventSource('/api/events');
+
+      eventSource.addEventListener('message', (e) => {
+        const { phone, message } = JSON.parse(e.data);
+        if (!conversations[phone]) {
+          conversations[phone] = { name: phone, messages: [] };
+        }
+        conversations[phone].messages.push(message);
+        renderConversations();
+        if (phone === currentPhone) {
+          renderChat();
+        }
+      });
+
+      eventSource.addEventListener('conversation_update', (e) => {
+        const { phone, name } = JSON.parse(e.data);
+        if (conversations[phone]) {
+          conversations[phone].name = name;
+        } else {
+          conversations[phone] = { name, messages: [] };
+        }
+        renderConversations();
+        if (phone === currentPhone) {
+          renderChat();
+        }
+      });
+
+      eventSource.addEventListener('status', (e) => {
+        console.log('Status update:', JSON.parse(e.data));
+      });
+
+      eventSource.onerror = () => {
+        console.log('SSE connection lost, reconnecting...');
+      };
+    }
+
+    // Bot toggle
+    async function loadBotStatus() {
+      try {
+        const res = await fetch('/api/bot');
+        const data = await res.json();
+        updateBotUI(data.enabled);
+      } catch (err) {
+        console.error('Failed to load bot status:', err);
+      }
+    }
+
+    async function toggleBot(enabled) {
+      try {
+        const res = await fetch('/api/bot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        updateBotUI(data.enabled);
+      } catch (err) {
+        console.error('Failed to toggle bot:', err);
+      }
+    }
+
+    function updateBotUI(enabled) {
+      const toggle = document.getElementById('bot-toggle');
+      const status = document.getElementById('bot-status');
+      toggle.checked = enabled;
+      status.textContent = enabled ? 'AN' : 'AUS';
+      status.className = 'bot-status' + (enabled ? '' : ' off');
+    }
+
+    // Song credits: load users and add songs
+    let usersList = [];
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users');
+        usersList = await res.json();
+        renderUsers();
+      } catch (err) {
+        console.error('Failed to load users:', err);
+      }
+    }
+
+    function renderUsers() {
+      const container = document.getElementById('users-list');
+      if (!usersList.length) {
+        container.innerHTML = '<div style="padding:12px;color:#8696a0;font-size:13px;">Noch keine Nutzer.</div>';
+        return;
+      }
+      container.innerHTML = usersList.map(u => `
+        <div class="user-song-row">
+          <div style="flex:1;min-width:0;">
+            <div class="name">${escapeHtml(u.name)}</div>
+            <div class="phone">+${u.phone}</div>
+          </div>
+          <span class="credits">${u.songCredits}</span>
+          <div class="add-row">
+            <input type="number" class="add-input" id="add-${u.phone}" min="1" value="1" />
+            <button class="add-btn" onclick="addSongsForUser('${u.phone}')">Hinzufügen</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleSongsPanel() {
+      const content = document.getElementById('songs-panel-content');
+      const arrow = document.getElementById('songs-panel-arrow');
+      const isOpen = content.style.display !== 'none';
+      content.style.display = isOpen ? 'none' : 'block';
+      arrow.textContent = isOpen ? '▼' : '▲';
+      if (!isOpen) loadUsers();
+    }
+
+    async function addSongsForUser(phone) {
+      const input = document.getElementById('add-' + phone);
+      const add = Math.max(1, parseInt(input?.value || '1', 10));
+      try {
+        const res = await fetch('/api/users/' + encodeURIComponent(phone) + '/songs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ add })
+        });
+        const data = await res.json();
+        if (data.songCredits !== undefined) {
+          const u = usersList.find(x => x.phone === phone);
+          if (u) u.songCredits = data.songCredits;
+          renderUsers();
+        }
+      } catch (err) {
+        console.error('Failed to add songs:', err);
+        alert('Songs konnten nicht hinzugefügt werden');
+      }
+    }
+
+    // Initialize
+    loadConversations();
+    loadBotStatus();
+    setupSSE();
+  </script>
+</body>
+</html>
