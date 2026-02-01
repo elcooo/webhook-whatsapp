@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datenschutzerklärung - KI-Song-Bot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-dark: #111b21;
+      --bg-card: #1f2c34;
+      --bg-light: #202c33;
+      --accent: #00a884;
+      --accent-hover: #00c49a;
+      --text: #e9edef;
+      --text-muted: #8696a0;
+      --border: #2a3942;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 32px;
+      background: rgba(17, 27, 33, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 120px 24px 80px;
+    }
+
+    h1 {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+
+    .last-updated {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-top: 40px;
+      margin-bottom: 16px;
+      color: var(--accent);
+    }
+
+    h3 {
+      font-size: 18px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: var(--text-muted);
+    }
+
+    ul {
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+
+    li {
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .highlight-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+
+    .highlight-box p {
+      margin-bottom: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    th {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    footer {
+      padding: 40px 24px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .footer-copy {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: 12px 16px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .content {
+        padding: 100px 16px 60px;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      th, td {
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">
+      <span>🎵</span> KI-Song-Bot
+    </a>
+    <div class="nav-links">
+      <a href="/">Startseite</a>
+      <a href="/terms.html">Nutzungsbedingungen</a>
+      <a href="/dashboard.html">Dashboard</a>
+    </div>
+  </nav>
+
+  <main class="content">
+    <h1>Datenschutzerklärung</h1>
+    <p class="last-updated">Zuletzt aktualisiert: Februar 2025</p>
+
+    <p>Der Schutz Ihrer personenbezogenen Daten ist uns wichtig. Diese Datenschutzerklärung informiert Sie darüber, wie wir Ihre Daten bei der Nutzung des KI-Song-Bot-Dienstes erheben, verarbeiten und schützen.</p>
+
+    <h2>1. Verantwortlicher</h2>
+    <p>Verantwortlich für die Datenverarbeitung im Sinne der Datenschutz-Grundverordnung (DSGVO) ist der Betreiber des KI-Song-Bot-Dienstes. Kontaktmöglichkeiten finden Sie auf unserer Website.</p>
+
+    <h2>2. Welche Daten wir erheben</h2>
+    <p>Bei der Nutzung unseres Dienstes werden folgende Daten verarbeitet:</p>
+
+    <h3>2.1 WhatsApp-Kommunikationsdaten</h3>
+    <ul>
+      <li><strong>Telefonnummer:</strong> Ihre WhatsApp-Telefonnummer zur Identifikation und Kommunikation</li>
+      <li><strong>Profilname:</strong> Ihr WhatsApp-Anzeigename</li>
+      <li><strong>Nachrichteninhalte:</strong> Die Textnachrichten, die Sie an unseren Bot senden</li>
+      <li><strong>Zeitstempel:</strong> Datum und Uhrzeit der Nachrichten</li>
+    </ul>
+
+    <h3>2.2 Song-Daten</h3>
+    <ul>
+      <li>Ihre Song-Anfragen und Beschreibungen</li>
+      <li>Die für Sie generierten Songs</li>
+      <li>Ihr Song-Guthaben</li>
+    </ul>
+
+    <h2>3. Zweck der Datenverarbeitung</h2>
+    <table>
+      <tr>
+        <th>Daten</th>
+        <th>Zweck</th>
+        <th>Rechtsgrundlage</th>
+      </tr>
+      <tr>
+        <td>Telefonnummer, Name</td>
+        <td>Kommunikation und Bereitstellung des Dienstes</td>
+        <td>Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO)</td>
+      </tr>
+      <tr>
+        <td>Nachrichteninhalte</td>
+        <td>Erstellung personalisierter Songs</td>
+        <td>Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO)</td>
+      </tr>
+      <tr>
+        <td>Song-Guthaben</td>
+        <td>Verwaltung Ihrer Nutzungsrechte</td>
+        <td>Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO)</td>
+      </tr>
+    </table>
+
+    <h2>4. Datenweitergabe an Dritte</h2>
+    <p>Zur Bereitstellung unseres Dienstes nutzen wir folgende Drittanbieter:</p>
+    <ul>
+      <li><strong>Meta (WhatsApp Business API):</strong> Für die Kommunikation über WhatsApp</li>
+      <li><strong>KI-Dienste:</strong> Für die Generierung von Songs und die Verarbeitung natürlicher Sprache</li>
+    </ul>
+    <p>Diese Anbieter verarbeiten Daten in unserem Auftrag und sind vertraglich zur Einhaltung der Datenschutzbestimmungen verpflichtet.</p>
+
+    <h2>5. Speicherdauer</h2>
+    <div class="highlight-box">
+      <p>Ihre Daten werden so lange gespeichert, wie es für die Bereitstellung des Dienstes erforderlich ist. Konversationsdaten werden nach 12 Monaten Inaktivität automatisch gelöscht. Sie können jederzeit die Löschung Ihrer Daten beantragen.</p>
+    </div>
+
+    <h2>6. Ihre Rechte</h2>
+    <p>Nach der DSGVO haben Sie folgende Rechte:</p>
+    <ul>
+      <li><strong>Auskunftsrecht:</strong> Sie können Auskunft über Ihre gespeicherten Daten verlangen</li>
+      <li><strong>Berichtigungsrecht:</strong> Sie können die Berichtigung unrichtiger Daten verlangen</li>
+      <li><strong>Löschungsrecht:</strong> Sie können die Löschung Ihrer Daten verlangen</li>
+      <li><strong>Einschränkung der Verarbeitung:</strong> Sie können die Einschränkung der Datenverarbeitung verlangen</li>
+      <li><strong>Datenübertragbarkeit:</strong> Sie können Ihre Daten in einem gängigen Format erhalten</li>
+      <li><strong>Widerspruchsrecht:</strong> Sie können der Datenverarbeitung widersprechen</li>
+    </ul>
+
+    <h2>7. Datensicherheit</h2>
+    <p>Wir setzen technische und organisatorische Maßnahmen ein, um Ihre Daten vor unbefugtem Zugriff, Verlust oder Missbrauch zu schützen:</p>
+    <ul>
+      <li>Verschlüsselte Datenübertragung (HTTPS/TLS)</li>
+      <li>Sichere Speicherung in geschützten Datenbanken</li>
+      <li>Regelmäßige Sicherheitsupdates</li>
+      <li>Zugriffsbeschränkungen für autorisiertes Personal</li>
+    </ul>
+
+    <h2>8. Cookies und Tracking</h2>
+    <p>Unsere Website verwendet keine Tracking-Cookies oder Analysetools von Drittanbietern. Es werden nur technisch notwendige Cookies verwendet, die für die Funktionalität der Website erforderlich sind.</p>
+
+    <h2>9. Änderungen dieser Datenschutzerklärung</h2>
+    <p>Wir behalten uns vor, diese Datenschutzerklärung bei Bedarf anzupassen, um sie an geänderte Rechtslagen oder Änderungen unseres Dienstes anzupassen. Die aktuelle Version finden Sie stets auf dieser Seite.</p>
+
+    <h2>10. Kontakt und Beschwerderecht</h2>
+    <p>Bei Fragen zum Datenschutz oder zur Ausübung Ihrer Rechte kontaktieren Sie uns bitte über WhatsApp oder die auf unserer Website angegebenen Kontaktmöglichkeiten.</p>
+    <p>Sie haben außerdem das Recht, sich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung Ihrer personenbezogenen Daten zu beschweren.</p>
+  </main>
+
+  <footer>
+    <div class="footer-links">
+      <a href="/">Startseite</a>
+      <a href="/privacy.html">Datenschutz</a>
+      <a href="/terms.html">Nutzungsbedingungen</a>
+      <a href="/dashboard.html">Dashboard</a>
+    </div>
+    <div class="footer-copy">
+      &copy; 2025 KI-Song-Bot. Erstellt mit ❤️ und KI.
+    </div>
+  </footer>
+</body>
+</html>
