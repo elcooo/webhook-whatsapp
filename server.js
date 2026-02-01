@@ -1,4 +1,4 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import express from "express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -7,6 +7,9 @@ import OpenAI from "openai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Load .env from project folder (so it works even if you run from another directory)
+dotenv.config({ path: join(__dirname, ".env") });
 
 const app = express();
 app.use(express.json());
@@ -36,6 +39,21 @@ if (missing.length) {
 }
 
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+const DONATION_LINK = process.env.DONATION_LINK || "";
+const DONATION_TEXT = DONATION_LINK
+  ? `💛 If this song made you smile, you can support the project here:\n${DONATION_LINK}\n\nAs a thank-you, supporters can request extra versions (HQ / instrumental).`
+  : `💛 If this song made you smile, you can support the project (donation link not set).`;
+
+function getConv(phone) {
+  if (!conversations[phone]) conversations[phone] = { name: phone, messages: [] };
+  if (!conversations[phone].state) {
+    conversations[phone].state = {
+      songGenerated: false,
+    };
+  }
+  return conversations[phone];
+}
 
 // Storage
 let botEnabled = true;
@@ -69,9 +87,9 @@ async function sendMessage(to, text) {
   const data = await response.json();
   console.log("Reply sent:", data);
 
-  if (!conversations[to]) conversations[to] = { name: to, messages: [] };
+  const convTo = getConv(to);
   const msg = { from: "me", text, timestamp: Date.now() };
-  conversations[to].messages.push(msg);
+  convTo.messages.push(msg);
   broadcast("message", { phone: to, message: msg });
 
   return data;
@@ -109,9 +127,9 @@ async function sendAudioMessage(to, mediaId) {
 
   const data = await response.json();
 
-  if (!conversations[to]) conversations[to] = { name: to, messages: [] };
+  const convTo = getConv(to);
   const msg = { from: "me", text: "🎵 [Audio]", timestamp: Date.now(), type: "audio" };
-  conversations[to].messages.push(msg);
+  convTo.messages.push(msg);
   broadcast("message", { phone: to, message: msg });
 
   return data;
@@ -162,6 +180,7 @@ CONVERSATION FLOW:
 3. Show lyrics and ask if they like it
 4. If yes, ask for music style (pop, rock, rap, etc)
 5. Once you have style confirmation, call generate_song ONCE
+6. After delivering the song, ask for a donation link support (short).
 
 NEVER:
 - Generate multiple songs
@@ -169,7 +188,9 @@ NEVER:
 - Write long responses
 - Call generate_song more than once per request
 
-When generating lyrics, keep them SHORT - just 1 verse and 1 chorus.`;
+When generating lyrics, keep them SHORT - just 1 verse and 1 chorus.
+
+After delivering the song, ask the user to support with a donation (do not pressure).`;
 
 const tools = [
   {
@@ -196,8 +217,7 @@ const tools = [
 ];
 
 async function chat(phone) {
-  const conv = conversations[phone];
-  if (!conv) return;
+  const conv = getConv(phone);
 
   // Build conversation history
   const history = conv.messages.slice(-15).map((msg) => ({
@@ -219,6 +239,15 @@ async function chat(phone) {
       const toolCall = message.tool_calls[0]; // Only process FIRST tool call
 
       if (toolCall.function.name === "generate_song") {
+        // HARD BLOCK: only one song per user
+        if (conv.state.songGenerated) {
+          await sendMessage(
+            phone,
+            `✅ I already generated your free song.\n\n${DONATION_TEXT}\n\nIf you want another song, reply: "new song" (you can decide later if you want to allow it).`
+          );
+          return;
+        }
+
         // Prevent duplicate generations
         if (generatingFor.has(phone)) {
           console.log("Already generating for", phone);
@@ -228,8 +257,7 @@ async function chat(phone) {
         generatingFor.add(phone);
         const args = JSON.parse(toolCall.function.arguments);
 
-        // Clear "generating" message
-        await sendMessage(phone, "🎵 Generating your song now... This takes about 1-2 minutes. Please wait!");
+        await sendMessage(phone, "🎵 Generating your song now...");
 
         // Generate the music
         const result = await generateMusicWithMiniMax(args.style, args.lyrics);
@@ -250,7 +278,8 @@ async function chat(phone) {
           const uploadResult = await uploadMedia(result.buffer, "audio/mpeg");
           if (uploadResult.id) {
             await sendAudioMessage(phone, uploadResult.id);
-            await sendMessage(phone, "🎉 Here's your song! Enjoy!");
+            conv.state.songGenerated = true;
+            await sendMessage(phone, `🎉 Here's your song!\n\n${DONATION_TEXT}`);
           }
         }
       }
@@ -381,11 +410,11 @@ app.post("/wa", async (req, res) => {
       const text = msg.text?.body || "[media]";
       const contactName = value.contacts?.[0]?.profile?.name || from;
 
-      if (!conversations[from]) conversations[from] = { name: contactName, messages: [] };
-      conversations[from].name = contactName;
+      const convFrom = getConv(from);
+      convFrom.name = contactName;
 
       const newMsg = { from, text, timestamp: parseInt(msg.timestamp) * 1000, read: false };
-      conversations[from].messages.push(newMsg);
+      convFrom.messages.push(newMsg);
 
       console.log(`Message from ${contactName}: ${text}`);
       broadcast("message", { phone: from, message: newMsg });
