@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Number Registration</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-dark: #111b21;
+      --bg-card: #1f2c34;
+      --bg-light: #202c33;
+      --accent: #00a884;
+      --accent-hover: #00c49a;
+      --text: #e9edef;
+      --text-muted: #8696a0;
+      --border: #2a3942;
+      --error: #f15c6d;
+      --success: #00a884;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-number {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      color: var(--bg-dark);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--accent);
+      color: var(--bg-dark);
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn.loading::after {
+      content: '';
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--bg-dark);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .result {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      display: none;
+    }
+
+    .result.success {
+      background: rgba(0, 168, 132, 0.15);
+      border: 1px solid var(--success);
+      color: var(--success);
+      display: block;
+    }
+
+    .result.error {
+      background: rgba(241, 92, 109, 0.15);
+      border: 1px solid var(--error);
+      color: var(--error);
+      display: block;
+    }
+
+    .warning {
+      background: rgba(255, 193, 7, 0.15);
+      border: 1px solid #ffc107;
+      color: #ffc107;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    .info {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 30px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+    }
+
+    .credentials-saved {
+      font-size: 12px;
+      color: var(--success);
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>WhatsApp Registration</h1>
+    <p class="subtitle">Register your phone number on WhatsApp Cloud API</p>
+
+    <div class="warning">
+      <strong>Important:</strong> If this phone number is currently used in WhatsApp or WhatsApp Business app, you must delete that account first. Backup your chats before proceeding.
+    </div>
+
+    <!-- Credentials -->
+    <div class="card">
+      <h2>API Credentials</h2>
+      <div class="form-group">
+        <label for="phoneNumberId">Phone Number ID</label>
+        <input type="text" id="phoneNumberId" placeholder="e.g., 123456789012345">
+      </div>
+      <div class="form-group">
+        <label for="accessToken">Access Token</label>
+        <input type="password" id="accessToken" placeholder="Your Meta access token">
+        <p class="info">Your credentials are stored locally in your browser only.</p>
+      </div>
+      <div id="credentialsSaved" class="credentials-saved" style="display:none;">Credentials saved locally</div>
+    </div>
+
+    <!-- Step 1: Request Code -->
+    <div class="card">
+      <h2><span class="step-number">1</span> Request Verification Code</h2>
+      <div class="form-group">
+        <label for="codeMethod">Verification Method</label>
+        <select id="codeMethod">
+          <option value="SMS">SMS</option>
+          <option value="VOICE">Voice Call</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="language">Language</label>
+        <select id="language">
+          <option value="en_US">English (US)</option>
+          <option value="de_DE">German</option>
+          <option value="es_ES">Spanish</option>
+          <option value="fr_FR">French</option>
+        </select>
+      </div>
+      <button class="btn" onclick="requestCode()">Request Code</button>
+      <div id="requestResult" class="result"></div>
+    </div>
+
+    <!-- Step 2: Verify Code -->
+    <div class="card">
+      <h2><span class="step-number">2</span> Verify Code</h2>
+      <div class="form-group">
+        <label for="verificationCode">Verification Code (from SMS/Call)</label>
+        <input type="text" id="verificationCode" placeholder="e.g., 123456" maxlength="6">
+      </div>
+      <button class="btn" onclick="verifyCode()">Verify Code</button>
+      <div id="verifyResult" class="result"></div>
+    </div>
+
+    <!-- Step 3: Register -->
+    <div class="card">
+      <h2><span class="step-number">3</span> Register Number</h2>
+      <div class="form-group">
+        <label for="pin">6-Digit PIN (choose your own, NOT the SMS code)</label>
+        <input type="text" id="pin" placeholder="e.g., 654321" maxlength="6">
+        <p class="info">This is your Two-Step Verification PIN. Remember it - you'll need it if you ever re-register.</p>
+      </div>
+      <button class="btn" onclick="registerNumber()">Register Number</button>
+      <div id="registerResult" class="result"></div>
+    </div>
+
+    <a href="dashboard.html" class="back-link">Back to Dashboard</a>
+  </div>
+
+  <script>
+    // Load saved credentials on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedPhoneId = localStorage.getItem('wa_phone_number_id');
+      const savedToken = localStorage.getItem('wa_access_token');
+
+      if (savedPhoneId) document.getElementById('phoneNumberId').value = savedPhoneId;
+      if (savedToken) document.getElementById('accessToken').value = savedToken;
+      if (savedPhoneId || savedToken) {
+        document.getElementById('credentialsSaved').style.display = 'block';
+      }
+    });
+
+    // Save credentials when they change
+    document.getElementById('phoneNumberId').addEventListener('change', saveCredentials);
+    document.getElementById('accessToken').addEventListener('change', saveCredentials);
+
+    function saveCredentials() {
+      const phoneId = document.getElementById('phoneNumberId').value.trim();
+      const token = document.getElementById('accessToken').value.trim();
+
+      if (phoneId) localStorage.setItem('wa_phone_number_id', phoneId);
+      if (token) localStorage.setItem('wa_access_token', token);
+
+      if (phoneId || token) {
+        document.getElementById('credentialsSaved').style.display = 'block';
+      }
+    }
+
+    function getCredentials() {
+      const phoneNumberId = document.getElementById('phoneNumberId').value.trim();
+      const accessToken = document.getElementById('accessToken').value.trim();
+
+      if (!phoneNumberId || !accessToken) {
+        alert('Please enter both Phone Number ID and Access Token');
+        return null;
+      }
+
+      return { phoneNumberId, accessToken };
+    }
+
+    function showResult(elementId, success, message) {
+      const el = document.getElementById(elementId);
+      el.className = 'result ' + (success ? 'success' : 'error');
+      el.textContent = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
+    }
+
+    function setLoading(btn, loading) {
+      btn.disabled = loading;
+      btn.classList.toggle('loading', loading);
+    }
+
+    async function requestCode() {
+      const creds = getCredentials();
+      if (!creds) return;
+
+      const btn = event.target;
+      setLoading(btn, true);
+
+      const method = document.getElementById('codeMethod').value;
+      const language = document.getElementById('language').value;
+
+      try {
+        const response = await fetch(`https://graph.facebook.com/v22.0/${creds.phoneNumberId}/request_code`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${creds.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            code_method: method,
+            language: language
+          })
+        });
+
+        const data = await response.json();
+        showResult('requestResult', response.ok, data);
+      } catch (error) {
+        showResult('requestResult', false, 'Network error: ' + error.message);
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    async function verifyCode() {
+      const creds = getCredentials();
+      if (!creds) return;
+
+      const code = document.getElementById('verificationCode').value.trim();
+      if (!code) {
+        alert('Please enter the verification code');
+        return;
+      }
+
+      const btn = event.target;
+      setLoading(btn, true);
+
+      try {
+        const response = await fetch(`https://graph.facebook.com/v22.0/${creds.phoneNumberId}/verify_code`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${creds.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            code: code
+          })
+        });
+
+        const data = await response.json();
+        showResult('verifyResult', response.ok, data);
+      } catch (error) {
+        showResult('verifyResult', false, 'Network error: ' + error.message);
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    async function registerNumber() {
+      const creds = getCredentials();
+      if (!creds) return;
+
+      const pin = document.getElementById('pin').value.trim();
+      if (!pin || pin.length !== 6 || !/^\d+$/.test(pin)) {
+        alert('Please enter a valid 6-digit PIN');
+        return;
+      }
+
+      const btn = event.target;
+      setLoading(btn, true);
+
+      try {
+        const response = await fetch(`https://graph.facebook.com/v22.0/${creds.phoneNumberId}/register`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${creds.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            pin: pin
+          })
+        });
+
+        const data = await response.json();
+        showResult('registerResult', response.ok, data);
+
+        if (response.ok) {
+          showResult('registerResult', true,
+            'Registration successful!\n\n' + JSON.stringify(data, null, 2) +
+            '\n\nYour number should now be active. Refresh WhatsApp Manager to confirm.');
+        }
+      } catch (error) {
+        showResult('registerResult', false, 'Network error: ' + error.message);
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+  </script>
+</body>
+</html>
