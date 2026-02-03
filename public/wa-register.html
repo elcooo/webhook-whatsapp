@@ -171,6 +171,21 @@
       display: block;
     }
 
+    .result.info {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid #3b82f6;
+      color: #60a5fa;
+      display: block;
+    }
+
+    .result-explanation {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid currentColor;
+      opacity: 0.9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
     .warning {
       background: rgba(255, 193, 7, 0.15);
       border: 1px solid #ffc107;
@@ -277,6 +292,19 @@
       <div id="registerResult" class="result"></div>
     </div>
 
+    <!-- Step 4: Test -->
+    <div class="card">
+      <h2><span class="step-number">4</span> Test Your Number (Optional)</h2>
+      <p class="info" style="margin-bottom: 16px; margin-top: 0;">Verify your number is working by sending a test message.</p>
+      <div class="form-group">
+        <label for="testNumber">Recipient Phone Number (with country code)</label>
+        <input type="text" id="testNumber" placeholder="e.g., 491234567890">
+        <p class="info">Enter the full number including country code, no + or spaces.</p>
+      </div>
+      <button class="btn" onclick="testSendMessage()">Send Test Message</button>
+      <div id="testResult" class="result"></div>
+    </div>
+
     <a href="dashboard.html" class="back-link">Back to Dashboard</a>
   </div>
 
@@ -321,10 +349,84 @@
       return { phoneNumberId, accessToken };
     }
 
-    function showResult(elementId, success, message) {
+    // Error explanations for common WhatsApp API errors
+    const errorExplanations = {
+      // Request code errors
+      '136024_2388091': {
+        type: 'info',
+        title: 'Ownership Already Verified!',
+        message: 'Good news! Meta has already confirmed you own this phone number. You can skip Steps 1 & 2 and go directly to Step 3 (Register Number) to set your PIN and activate the number.'
+      },
+      // Register errors
+      '136024_2388093': {
+        type: 'info',
+        title: 'Already Registered',
+        message: 'This number is already registered on the platform. Try sending a test message via the API, or refresh WhatsApp Manager to see the current status.'
+      },
+      '136024_2388030': {
+        type: 'error',
+        title: 'Wrong PIN',
+        message: 'The PIN you entered does not match. If you forgot your PIN, go to WhatsApp Manager → Phone Numbers → Select your number → Two-step verification tab → Reset/change your PIN there.'
+      },
+      '136024_2388032': {
+        type: 'error',
+        title: 'PIN Required',
+        message: 'A Two-Step Verification PIN was previously set for this number. Enter the correct PIN or reset it in WhatsApp Manager under Two-step verification settings.'
+      },
+      // Verify code errors
+      '136024_2388049': {
+        type: 'error',
+        title: 'Invalid Code',
+        message: 'The verification code is incorrect or has expired. Request a new code and try again.'
+      },
+      // Generic
+      '100_33': {
+        type: 'error',
+        title: 'Invalid Phone Number ID',
+        message: 'The Phone Number ID doesn\'t exist or your token doesn\'t have access to it. Check that the ID matches exactly what\'s shown in WhatsApp Manager.'
+      },
+      '190': {
+        type: 'error',
+        title: 'Invalid Access Token',
+        message: 'Your access token is invalid or expired. Generate a new token in Meta Business Suite.'
+      }
+    };
+
+    function getErrorExplanation(data) {
+      if (!data || !data.error) return null;
+
+      const code = data.error.code;
+      const subcode = data.error.error_subcode;
+
+      // Try specific code_subcode first
+      if (subcode && errorExplanations[`${code}_${subcode}`]) {
+        return errorExplanations[`${code}_${subcode}`];
+      }
+      // Try just the code
+      if (errorExplanations[String(code)]) {
+        return errorExplanations[String(code)];
+      }
+      return null;
+    }
+
+    function showResult(elementId, success, message, data = null) {
       const el = document.getElementById(elementId);
-      el.className = 'result ' + (success ? 'success' : 'error');
-      el.textContent = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
+      const explanation = data ? getErrorExplanation(data) : null;
+
+      let resultType = success ? 'success' : 'error';
+      if (explanation && explanation.type === 'info') {
+        resultType = 'info';
+      }
+
+      el.className = 'result ' + resultType;
+
+      let content = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
+
+      if (explanation) {
+        content += `\n\n--- ${explanation.title} ---\n${explanation.message}`;
+      }
+
+      el.textContent = content;
     }
 
     function setLoading(btn, loading) {
@@ -357,7 +459,7 @@
         });
 
         const data = await response.json();
-        showResult('requestResult', response.ok, data);
+        showResult('requestResult', response.ok, data, data);
       } catch (error) {
         showResult('requestResult', false, 'Network error: ' + error.message);
       } finally {
@@ -392,7 +494,7 @@
         });
 
         const data = await response.json();
-        showResult('verifyResult', response.ok, data);
+        showResult('verifyResult', response.ok, data, data);
       } catch (error) {
         showResult('verifyResult', false, 'Network error: ' + error.message);
       } finally {
@@ -427,15 +529,60 @@
         });
 
         const data = await response.json();
-        showResult('registerResult', response.ok, data);
 
         if (response.ok) {
           showResult('registerResult', true,
             'Registration successful!\n\n' + JSON.stringify(data, null, 2) +
             '\n\nYour number should now be active. Refresh WhatsApp Manager to confirm.');
+        } else {
+          showResult('registerResult', false, data, data);
         }
       } catch (error) {
         showResult('registerResult', false, 'Network error: ' + error.message);
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    // Add test message function
+    async function testSendMessage() {
+      const creds = getCredentials();
+      if (!creds) return;
+
+      const testNumber = document.getElementById('testNumber').value.trim();
+      if (!testNumber) {
+        alert('Please enter a test phone number');
+        return;
+      }
+
+      const btn = event.target;
+      setLoading(btn, true);
+
+      try {
+        const response = await fetch(`https://graph.facebook.com/v22.0/${creds.phoneNumberId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${creds.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: testNumber,
+            type: 'text',
+            text: { body: 'Test message from WhatsApp Cloud API registration check.' }
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          showResult('testResult', true,
+            'Message sent successfully!\n\n' + JSON.stringify(data, null, 2) +
+            '\n\nYour number is fully registered and working.');
+        } else {
+          showResult('testResult', false, data, data);
+        }
+      } catch (error) {
+        showResult('testResult', false, 'Network error: ' + error.message);
       } finally {
         setLoading(btn, false);
       }
