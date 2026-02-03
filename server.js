@@ -21,14 +21,17 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Credentials (from .env or environment)
 const VERIFY_TOKEN = process.env.WA_VERIFY_TOKEN;
 const ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN;
-const PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID;
+
+// Keep as fallback + for manual sending endpoints
+const DEFAULT_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID;
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY;
 
 const required = [
   ["WA_VERIFY_TOKEN", VERIFY_TOKEN],
   ["WA_ACCESS_TOKEN", ACCESS_TOKEN],
-  ["WA_PHONE_NUMBER_ID", PHONE_NUMBER_ID],
+  ["WA_PHONE_NUMBER_ID", DEFAULT_PHONE_NUMBER_ID],
   ["OPENAI_API_KEY", OPENAI_API_KEY],
   ["MINIMAX_API_KEY", MINIMAX_API_KEY],
 ];
@@ -84,7 +87,9 @@ function loadFromDb() {
       state: { songCredits: row.song_credits },
     };
   }
-  const msgRows = db.prepare("SELECT phone, from_side, content, timestamp, read_flag FROM messages ORDER BY id").all();
+  const msgRows = db
+    .prepare("SELECT phone, from_side, content, timestamp, read_flag FROM messages ORDER BY id")
+    .all();
   for (const row of msgRows) {
     const conv = conversations[row.phone];
     if (conv) {
@@ -104,7 +109,9 @@ function getConv(phone, name) {
   if (!conversations[phone]) {
     conversations[phone] = { name: name || phone, messages: [], state: { songCredits: 1 } };
     const now = Date.now();
-    db.prepare("INSERT OR IGNORE INTO users (phone, name, song_credits, created_at, updated_at) VALUES (?, ?, 1, ?, ?)").run(phone, name || phone, now, now);
+    db.prepare(
+      "INSERT OR IGNORE INTO users (phone, name, song_credits, created_at, updated_at) VALUES (?, ?, 1, ?, ?)"
+    ).run(phone, name || phone, now, now);
   }
   if (!conversations[phone].state) conversations[phone].state = { songCredits: 1 };
   if (conversations[phone].state.songCredits === undefined) {
@@ -116,21 +123,24 @@ function getConv(phone, name) {
 
 function saveMessage(phone, fromSide, content, timestamp, read = false) {
   getConv(phone);
-  db.prepare("INSERT INTO messages (phone, from_side, content, timestamp, read_flag) VALUES (?, ?, ?, ?, ?)").run(phone, fromSide, content, timestamp, read ? 1 : 0);
+  db.prepare("INSERT INTO messages (phone, from_side, content, timestamp, read_flag) VALUES (?, ?, ?, ?, ?)")
+    .run(phone, fromSide, content, timestamp, read ? 1 : 0);
 }
 
 function useSongCredit(phone) {
   const conv = getConv(phone);
   const newCredits = Math.max(0, (conv.state.songCredits ?? 1) - 1);
   conv.state.songCredits = newCredits;
-  db.prepare("UPDATE users SET song_credits = ?, updated_at = ? WHERE phone = ?").run(newCredits, Date.now(), phone);
+  db.prepare("UPDATE users SET song_credits = ?, updated_at = ? WHERE phone = ?")
+    .run(newCredits, Date.now(), phone);
 }
 
 function addSongCredits(phone, count) {
   const conv = getConv(phone);
   const newCredits = Math.max(0, (conv.state.songCredits ?? 0) + count);
   conv.state.songCredits = newCredits;
-  db.prepare("UPDATE users SET song_credits = ?, updated_at = ? WHERE phone = ?").run(newCredits, Date.now(), phone);
+  db.prepare("UPDATE users SET song_credits = ?, updated_at = ? WHERE phone = ?")
+    .run(newCredits, Date.now(), phone);
   return newCredits;
 }
 
@@ -141,9 +151,16 @@ function broadcast(event, data) {
   }
 }
 
-// WhatsApp API functions
-async function sendMessage(to, text) {
-  const response = await fetch(`https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`, {
+// --- WhatsApp API functions ---
+// IMPORTANT: use the phoneNumberId that matches the inbound message (test vs real)
+function resolvePhoneNumberId(phoneNumberId) {
+  return phoneNumberId || DEFAULT_PHONE_NUMBER_ID;
+}
+
+async function sendMessage(phoneNumberId, to, text) {
+  const pid = resolvePhoneNumberId(phoneNumberId);
+
+  const response = await fetch(`https://graph.facebook.com/v22.0/${pid}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${ACCESS_TOKEN}`,
@@ -160,32 +177,43 @@ async function sendMessage(to, text) {
   const data = await response.json();
   console.log("Reply sent:", data);
 
-  const convTo = getConv(to);
-  const msg = { from: "me", text, timestamp: Date.now() };
-  convTo.messages.push(msg);
-  saveMessage(to, "me", text, msg.timestamp, false);
-  broadcast("message", { phone: to, message: msg });
+  // Only store/broadcast if it really sent
+  if (!data?.error) {
+    const convTo = getConv(to);
+    const msg = { from: "me", text, timestamp: Date.now() };
+    convTo.messages.push(msg);
+    saveMessage(to, "me", text, msg.timestamp, false);
+    broadcast("message", { phone: to, message: msg });
+  } else {
+    console.error("WhatsApp sendMessage failed:", data.error);
+  }
 
   return data;
 }
 
-async function uploadMedia(buffer, mimeType) {
+async function uploadMedia(phoneNumberId, buffer, mimeType) {
+  const pid = resolvePhoneNumberId(phoneNumberId);
+
   const formData = new FormData();
   formData.append("file", new Blob([buffer], { type: mimeType }), "audio.mp3");
   formData.append("type", mimeType);
   formData.append("messaging_product", "whatsapp");
 
-  const response = await fetch(`https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/media`, {
+  const response = await fetch(`https://graph.facebook.com/v22.0/${pid}/media`, {
     method: "POST",
     headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
     body: formData,
   });
 
-  return response.json();
+  const data = await response.json();
+  if (data?.error) console.error("WhatsApp uploadMedia failed:", data.error);
+  return data;
 }
 
-async function sendAudioMessage(to, mediaId) {
-  const response = await fetch(`https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`, {
+async function sendAudioMessage(phoneNumberId, to, mediaId) {
+  const pid = resolvePhoneNumberId(phoneNumberId);
+
+  const response = await fetch(`https://graph.facebook.com/v22.0/${pid}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${ACCESS_TOKEN}`,
@@ -200,12 +228,17 @@ async function sendAudioMessage(to, mediaId) {
   });
 
   const data = await response.json();
+  console.log("Audio reply sent:", data);
 
-  const convTo = getConv(to);
-  const msg = { from: "me", text: "🎵 [Audio]", timestamp: Date.now(), type: "audio" };
-  convTo.messages.push(msg);
-  saveMessage(to, "me", "🎵 [Audio]", msg.timestamp, false);
-  broadcast("message", { phone: to, message: msg });
+  if (!data?.error) {
+    const convTo = getConv(to);
+    const msg = { from: "me", text: "🎵 [Audio]", timestamp: Date.now(), type: "audio" };
+    convTo.messages.push(msg);
+    saveMessage(to, "me", "🎵 [Audio]", msg.timestamp, false);
+    broadcast("message", { phone: to, message: msg });
+  } else {
+    console.error("WhatsApp sendAudioMessage failed:", data.error);
+  }
 
   return data;
 }
@@ -277,7 +310,8 @@ const tools = [
     type: "function",
     function: {
       name: "generate_song",
-      description: "Erzeuge eine echte Song-/Musik-Audiodatei und sende sie an den Nutzer. Nutze das, wenn der Nutzer bestätigt hat, dass er einen Song erstellen will und du sowohl Lyrics als auch Stil hast.",
+      description:
+        "Erzeuge eine echte Song-/Musik-Audiodatei und sende sie an den Nutzer. Nutze das, wenn der Nutzer bestätigt hat, dass er einen Song erstellen will und du sowohl Lyrics als auch Stil hast.",
       parameters: {
         type: "object",
         properties: {
@@ -287,7 +321,8 @@ const tools = [
           },
           style: {
             type: "string",
-            description: "Musikstil-Beschreibung z.B. 'beschwingter Pop, eingängige Melodie' oder 'emotionaler Ballad, Klavier'",
+            description:
+              "Musikstil-Beschreibung z.B. 'beschwingter Pop, eingängige Melodie' oder 'emotionaler Ballad, Klavier'",
           },
         },
         required: ["lyrics", "style"],
@@ -296,7 +331,7 @@ const tools = [
   },
 ];
 
-async function chat(phone) {
+async function chat(phone, phoneNumberId) {
   const conv = getConv(phone);
 
   // Build conversation history
@@ -322,6 +357,7 @@ async function chat(phone) {
         const credits = conv.state.songCredits ?? 0;
         if (credits <= 0) {
           await sendMessage(
+            phoneNumberId,
             phone,
             `✅ Dein Song-Guthaben ist aufgebraucht.\n\n${DONATION_TEXT}\n\nWenn du weitere Songs möchtest, kannst du das Projekt unterstützen oder uns schreiben.`
           );
@@ -337,8 +373,12 @@ async function chat(phone) {
         generatingFor.add(phone);
         const args = JSON.parse(toolCall.function.arguments);
 
-        await sendMessage(phone, "🎵 Dein Song wird jetzt erstellt...");
-        await sendMessage(phone, "✅ Alles läuft – die Erstellung kann einen Moment dauern. Ich melde mich, sobald dein Song fertig ist!");
+        await sendMessage(phoneNumberId, phone, "🎵 Dein Song wird jetzt erstellt...");
+        await sendMessage(
+          phoneNumberId,
+          phone,
+          "✅ Alles läuft – die Erstellung kann einen Moment dauern. Ich melde mich, sobald dein Song fertig ist!"
+        );
 
         // Generate the music
         const result = await generateMusicWithMiniMax(args.style, args.lyrics);
@@ -353,23 +393,25 @@ async function chat(phone) {
             ],
           });
           const errorMsg = errorResponse.choices[0]?.message?.content;
-          if (errorMsg) await sendMessage(phone, errorMsg);
+          if (errorMsg) await sendMessage(phoneNumberId, phone, errorMsg);
         } else {
           // Upload and send the audio
-          const uploadResult = await uploadMedia(result.buffer, "audio/mpeg");
+          const uploadResult = await uploadMedia(phoneNumberId, result.buffer, "audio/mpeg");
           if (uploadResult.id) {
-            await sendAudioMessage(phone, uploadResult.id);
+            await sendAudioMessage(phoneNumberId, phone, uploadResult.id);
             useSongCredit(phone);
-            await sendMessage(phone, `🎉 Hier ist dein Song!\n\n${DONATION_TEXT}`);
+            await sendMessage(phoneNumberId, phone, `🎉 Hier ist dein Song!\n\n${DONATION_TEXT}`);
+          } else {
+            await sendMessage(phoneNumberId, phone, "❌ Upload fehlgeschlagen. Bitte versuch es später nochmal.");
           }
         }
       }
     } else if (message?.content) {
       // Regular text response
-      await sendMessage(phone, message.content);
+      await sendMessage(phoneNumberId, phone, message.content);
     }
   } catch (err) {
-    console.error("Chat error:", err.message);
+    console.error("Chat error:", err?.message || err);
   }
 }
 
@@ -425,10 +467,11 @@ app.post("/api/bot", (req, res) => {
   res.json({ enabled: botEnabled });
 });
 
+// Manual send (uses DEFAULT_PHONE_NUMBER_ID)
 app.post("/api/send", async (req, res) => {
   const { to, text } = req.body;
   if (!to || !text) return res.status(400).json({ error: "'to' oder 'text' fehlt" });
-  res.json(await sendMessage(to, text));
+  res.json(await sendMessage(DEFAULT_PHONE_NUMBER_ID, to, text));
 });
 
 app.post("/api/send-audio", upload.single("audio"), async (req, res) => {
@@ -437,11 +480,11 @@ app.post("/api/send-audio", upload.single("audio"), async (req, res) => {
   if (!to || !file) return res.status(400).json({ error: "'to' oder Audiodatei fehlt" });
 
   try {
-    const uploadResult = await uploadMedia(file.buffer, file.mimetype);
+    const uploadResult = await uploadMedia(DEFAULT_PHONE_NUMBER_ID, file.buffer, file.mimetype);
     if (uploadResult.error) return res.status(400).json(uploadResult);
-    res.json(await sendAudioMessage(to, uploadResult.id));
+    res.json(await sendAudioMessage(DEFAULT_PHONE_NUMBER_ID, to, uploadResult.id));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err?.message || String(err) });
   }
 });
 
@@ -449,11 +492,14 @@ app.post("/api/generate-music", async (req, res) => {
   const { to } = req.body;
   if (!to) return res.status(400).json({ error: "'to' fehlt" });
 
-  // Let AI generate everything
   const response = await openai.chat.completions.create({
     model: "gpt-5.2",
     messages: [
-      { role: "developer", content: "Erzeuge zufällige Song-Lyrics mit [verse]- und [chorus]-Tags sowie eine Stil-Beschreibung. Antworte in JSON: {\"lyrics\": \"...\", \"style\": \"...\"}" },
+      {
+        role: "developer",
+        content:
+          'Erzeuge zufällige Song-Lyrics mit [verse]- und [chorus]-Tags sowie eine Stil-Beschreibung. Antworte in JSON: {"lyrics": "...", "style": "..."}',
+      },
       { role: "user", content: "Erstelle einen zufälligen lustigen Song" },
     ],
   });
@@ -470,21 +516,22 @@ app.post("/api/generate-music", async (req, res) => {
         { role: "user", content: "Starting generation" },
       ],
     });
+
     if (startMsg.choices[0]?.message?.content) {
-      await sendMessage(to, startMsg.choices[0].message.content);
+      await sendMessage(DEFAULT_PHONE_NUMBER_ID, to, startMsg.choices[0].message.content);
     }
 
     const result = await generateMusicWithMiniMax(style, lyrics);
     if (result.error) return res.status(400).json({ error: result.error });
 
-    const uploadResult = await uploadMedia(result.buffer, "audio/mpeg");
+    const uploadResult = await uploadMedia(DEFAULT_PHONE_NUMBER_ID, result.buffer, "audio/mpeg");
     if (uploadResult.error) return res.status(400).json(uploadResult);
 
-    await sendAudioMessage(to, uploadResult.id);
+    await sendAudioMessage(DEFAULT_PHONE_NUMBER_ID, to, uploadResult.id);
     res.json({ success: true });
   } catch (err) {
     console.error("Generate music error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err?.message || String(err) });
   }
 });
 
@@ -501,6 +548,15 @@ app.post("/wa", async (req, res) => {
   res.sendStatus(200);
 
   const value = req.body.entry?.[0]?.changes?.[0]?.value;
+
+  // This is the KEY FIX:
+  // Use the phone_number_id that the inbound message was sent TO (test vs real)
+  const inboundPhoneNumberId = value?.metadata?.phone_number_id || DEFAULT_PHONE_NUMBER_ID;
+  const inboundDisplayNumber = value?.metadata?.display_phone_number;
+  if (inboundDisplayNumber) {
+    console.log("Inbound to number:", inboundDisplayNumber, "phone_number_id:", inboundPhoneNumberId);
+  }
+
   const messages = value?.messages;
 
   if (messages?.length > 0) {
@@ -513,7 +569,7 @@ app.post("/wa", async (req, res) => {
       convFrom.name = contactName;
       db.prepare("UPDATE users SET name = ?, updated_at = ? WHERE phone = ?").run(contactName, Date.now(), from);
 
-      const ts = parseInt(msg.timestamp) * 1000;
+      const ts = parseInt(msg.timestamp, 10) * 1000;
       const newMsg = { from, text, timestamp: ts, read: false };
       convFrom.messages.push(newMsg);
       saveMessage(from, from, text, ts, false);
@@ -524,7 +580,7 @@ app.post("/wa", async (req, res) => {
 
       // Let AI handle everything
       if (botEnabled && msg.text?.body) {
-        await chat(from);
+        await chat(from, inboundPhoneNumberId);
       }
     }
   }
